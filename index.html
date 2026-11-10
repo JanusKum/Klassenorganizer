@@ -83,7 +83,7 @@
   @keyframes pop { 0% { opacity: 0; transform: scale(0.7); } 12% { opacity: 1; transform: scale(1); } 75% { opacity: 1; } 100% { opacity: 0; transform: scale(1.15); } }
 
   .pad { bottom: 0; padding-bottom: 22px; align-items: flex-end; gap: 12px;
-    padding-left: max(22px, calc(env(safe-area-inset-left, 0px) + 8px)); padding-right: max(22px, calc(env(safe-area-inset-right, 0px) + 8px)); }
+    padding-left: max(22px, calc(env(safe-area-inset-left, 0px) + 8px)); padding-right: max(6px, env(safe-area-inset-right, 0px)); }
   .pad .col { flex: 1 1 0; min-width: 0; max-width: 320px; display: flex; flex-direction: column; gap: 10px; pointer-events: auto; }
   .pad .row { display: flex; gap: 10px; }
   .pad .steer { flex: 0 0 auto; pointer-events: auto; }
@@ -277,7 +277,7 @@
     var cnt = document.getElementById('passed');
     if (cnt && cnt.offsetParent) {
       var r = cnt.getBoundingClientRect();
-      if (r.right > 200 && r.right + 16 < w) w = r.right + 16;
+      if (r.right > 200 && r.right + 14 < w) w = r.right + 14;
     }
     if (!isFinite(w) || w < 200) w = window.innerWidth;
     rootEl.style.setProperty('--vw', Math.round(w) + 'px');
