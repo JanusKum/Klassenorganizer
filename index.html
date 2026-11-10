@@ -177,6 +177,32 @@
   .garage { position: fixed; top: var(--vvt, 0px); bottom: auto; height: var(--vvh, 100%); }
   .opt { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
   .opt button { height: 40px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--fg); font: 700 17px var(--display); letter-spacing: 0.04em; text-transform: uppercase; cursor: pointer; }
+  /* Tasten selbst anordnen */
+  .pad.free { transform: none; top: var(--vvt, 0px); height: 0; padding: 0; }
+  .editing .pad .key { pointer-events: none; }
+  .editing .pad .col, .editing .pad .steer { touch-action: none; cursor: grab; }
+  .g-edit { outline: 3px solid var(--fg); outline-offset: 6px; border-radius: 22px; }
+  .g-edit[data-lock="0"] { outline-style: dashed; outline-color: var(--accent); }
+  .g-edit::after {
+    content: attr(data-label); position: absolute; left: 0; bottom: calc(100% + 12px); white-space: nowrap;
+    font: 700 15px var(--display); letter-spacing: 0.06em; text-transform: uppercase;
+    background: var(--panel); color: var(--fg); padding: 3px 10px; border-radius: 8px;
+  }
+  .g-edit[data-lock="0"]::after { color: var(--accent); }
+  .editbar {
+    position: fixed; z-index: 20; top: calc(var(--vvt, 0px) + 12px); left: 0; width: var(--vw, 100%);
+    box-sizing: border-box; padding-left: 16px; padding-right: 16px; display: flex; justify-content: center; pointer-events: none;
+  }
+  .editbar > div {
+    width: min(460px, 100%); pointer-events: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 18px;
+    padding: 12px 14px; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); display: flex; flex-direction: column; gap: 10px;
+  }
+  .editbar p { margin: 0; font-size: 14px; line-height: 1.4; color: var(--fg); }
+  .editbar p b { color: var(--accent); font-weight: 500; }
+  .editbar .btns { display: flex; gap: 8px; }
+  .editbar button { flex: 1 1 0; height: 46px; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--fg);
+    font: 700 19px var(--display); letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; }
+  .editbar button.main { background: var(--accent); color: #17120a; border-color: var(--accent); }
   #fail { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); }
 </style>
 <style>
@@ -203,7 +229,7 @@
 <div id="toast" class="toast"></div>
 
 <div id="pad" class="pad" hidden>
-  <div class="col">
+  <div id="g-pedals" class="col">
     <div class="row">
       <button id="k-nitro" class="key small boost" type="button">Nitro</button>
       <button id="k-skill" class="key small skill" type="button">Sprung</button>
@@ -213,7 +239,7 @@
       <button id="k-brake" class="key" type="button">Bremse</button>
     </div>
   </div>
-  <div class="row steer">
+  <div id="g-steer" class="row steer">
     <button id="k-left" class="key" type="button" aria-label="Nach links lenken"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M7.5 1 L2 5 L7.5 9 Z"/></svg></button>
     <button id="k-right" class="key" type="button" aria-label="Nach rechts lenken"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 1 L8 5 L2.5 9 Z"/></svg></button>
   </div>
@@ -239,6 +265,7 @@
         <dt>Nitro</dt><dd><i id="st-nitro"></i></dd>
       </dl>
       <div id="lock" class="lock" hidden><div><i id="lock-fill"></i></div><span id="lock-text"></span></div>
+      <div class="opt"><span>Tasten selbst anordnen</span><button id="arrange" type="button">Anordnen</button></div>
       <div class="opt"><span>Lage der Tasten im Rennen</span><button id="lift" type="button">Unten</button></div>
       <p class="help">Tastatur: Pfeile lenken, Gas und Bremse · Shift = Nitro · Leertaste = Fähigkeit</p>
     </div>
@@ -258,6 +285,12 @@
   </section>
 </div>
 
+<div id="editbar" class="editbar" hidden>
+  <div>
+    <p><b>Einmal tippen:</b> Gruppe lässt sich verschieben. <b>Zweimal tippen:</b> Gruppe ist fest.</p>
+    <div class="btns"><button id="arr-reset" type="button">Zurücksetzen</button><button id="arr-done" class="main" type="button">Fertig</button></div>
+  </div>
+</div>
 <div id="err" class="err" hidden></div>
 <div id="fail" hidden>Das Spiel konnte nicht gestartet werden. Bitte die Seite neu laden oder einen anderen Browser probieren.</div>
 
@@ -266,6 +299,7 @@
 (function () {
   function $(id) { return document.getElementById(id); }
   function rnd(a, b) { return a + Math.random() * (b - a); }
+  var VIS = { w: window.innerWidth, h: window.innerHeight, t: 0 };
   var rootEl = document.documentElement, LIFTS = [0, 80, 160], LIFT_NAMES = ['Unten', 'Höher', 'Ganz hoch'];
   function fitView() {
     var vv = window.visualViewport;
@@ -281,6 +315,8 @@
     }
     if (!isFinite(w) || w < 200) w = window.innerWidth;
     rootEl.style.setProperty('--vw', Math.round(w) + 'px');
+    VIS.w = w; VIS.h = h; VIS.t = t;
+    if (typeof applyPos === 'function') applyPos();
     rootEl.style.setProperty('--vvh', Math.round(h) + 'px');
     rootEl.style.setProperty('--vvt', Math.round(t) + 'px');
   }
@@ -1221,7 +1257,8 @@
   var save = { total: 0, best: 0, car: 0, maxLevel: 1, startLevel: 1, lift: 0 };
   try {
     var rawSave = JSON.parse(localStorage.getItem('nachtfalke-save') || 'null');
-    if (rawSave) { save.total = rawSave.total | 0; save.best = rawSave.best | 0; save.car = rawSave.car | 0; save.maxLevel = (rawSave.maxLevel | 0) || 1; save.startLevel = (rawSave.startLevel | 0) || 1; save.lift = (rawSave.lift | 0) % 3; }
+    if (rawSave) { save.total = rawSave.total | 0; save.best = rawSave.best | 0; save.car = rawSave.car | 0; save.maxLevel = (rawSave.maxLevel | 0) || 1; save.startLevel = (rawSave.startLevel | 0) || 1; save.lift = (rawSave.lift | 0) % 3;
+      if (rawSave.pos && rawSave.pos.pedals && rawSave.pos.steer) save.pos = rawSave.pos; }
     else { save.best = parseInt(localStorage.getItem('nachtfalke-best') || '0', 10) || 0; }
   } catch (e) {}
   function persist() { try { localStorage.setItem('nachtfalke-save', JSON.stringify(save)); } catch (e) {} }
@@ -1234,6 +1271,99 @@
     $('lvl').hidden = a.length < 2;
     $('lvl-text').textContent = 'Start ab Stufe ' + save.startLevel;
   }
+  /* ---------- Tasten anordnen ---------- */
+  var groups = { pedals: $('g-pedals'), steer: $('g-steer') }, locks = { pedals: true, steer: true };
+  var GROUP_NAMES = { pedals: 'Gas und Nitro', steer: 'Lenken' };
+  function applyPos() {
+    if (!save || !groups) return;
+    var pad = $('pad');
+    if (!save.pos) {
+      pad.classList.remove('free');
+      Object.keys(groups).forEach(function (k) { var g = groups[k]; g.style.position = g.style.left = g.style.top = g.style.width = ''; });
+      return;
+    }
+    pad.classList.add('free');
+    Object.keys(groups).forEach(function (k) {
+      var g = groups[k], p = save.pos[k];
+      g.style.position = 'fixed';
+      if (k === 'pedals') g.style.width = Math.round(Math.min(320, VIS.w * 0.42)) + 'px';
+      var gw = g.offsetWidth, gh = g.offsetHeight;
+      var x = Math.max(6, Math.min(VIS.w - gw - 6, p[0] * VIS.w));
+      var y = Math.max(6, Math.min(VIS.h - gh - 6, p[1] * VIS.h));
+      g.style.left = Math.round(x) + 'px';
+      g.style.top = Math.round(VIS.t + y) + 'px';
+    });
+  }
+  function setLock(k, on) {
+    locks[k] = on;
+    groups[k].setAttribute('data-lock', on ? '1' : '0');
+    groups[k].setAttribute('data-label', GROUP_NAMES[k] + (on ? ' · fest' : ' · verschieben'));
+  }
+  function capturePos() {
+    var pos = {};
+    Object.keys(groups).forEach(function (k) {
+      var r = groups[k].getBoundingClientRect();
+      pos[k] = [r.left / VIS.w, (r.top - VIS.t) / VIS.h];
+    });
+    save.pos = pos;
+  }
+  function startArrange() {
+    if (state !== 'menu') return;
+    state = 'edit';
+    $('garage').hidden = true; $('hud').hidden = true;
+    $('pad').hidden = false; $('k-skill').hidden = false; $('k-skill').textContent = D.skill ? D.skill.short : 'Fähigkeit';
+    document.body.classList.add('editing'); $('editbar').hidden = false;
+    fitView();
+    if (!save.pos) capturePos();
+    applyPos();
+    Object.keys(groups).forEach(function (k) { groups[k].classList.add('g-edit'); setLock(k, true); });
+  }
+  function endArrange() {
+    document.body.classList.remove('editing'); $('editbar').hidden = true;
+    Object.keys(groups).forEach(function (k) { groups[k].classList.remove('g-edit'); });
+    persist();
+    openGarage(null);
+  }
+  var drag = null, lastTap = { k: null, t: 0 };
+  Object.keys(groups).forEach(function (k) {
+    var g = groups[k];
+    g.addEventListener('pointerdown', function (e) {
+      if (state !== 'edit') return;
+      e.preventDefault();
+      try { g.setPointerCapture(e.pointerId); } catch (err) {}
+      drag = { k: k, id: e.pointerId, sx: e.clientX, sy: e.clientY, ox: parseFloat(g.style.left) || 0, oy: (parseFloat(g.style.top) || 0) - VIS.t, moved: false };
+    });
+    g.addEventListener('pointermove', function (e) {
+      if (!drag || drag.k !== k || drag.id !== e.pointerId) return;
+      var dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+      if (Math.abs(dx) + Math.abs(dy) > 8) drag.moved = true;
+      if (!drag.moved || locks[k]) return;
+      var gw = g.offsetWidth, gh = g.offsetHeight;
+      var x = Math.max(6, Math.min(VIS.w - gw - 6, drag.ox + dx));
+      var y = Math.max(6, Math.min(VIS.h - gh - 6, drag.oy + dy));
+      save.pos[k] = [x / VIS.w, y / VIS.h];
+      g.style.left = Math.round(x) + 'px'; g.style.top = Math.round(VIS.t + y) + 'px';
+    });
+    function up(e) {
+      if (!drag || drag.k !== k || drag.id !== e.pointerId) return;
+      if (!drag.moved) {
+        var now = Date.now();
+        if (lastTap.k === k && now - lastTap.t < 400) { setLock(k, true); lastTap = { k: null, t: 0 }; }
+        else { setLock(k, false); lastTap = { k: k, t: now }; }
+      }
+      drag = null;
+    }
+    g.addEventListener('pointerup', up);
+    g.addEventListener('pointercancel', up);
+  });
+  $('arrange').addEventListener('click', startArrange);
+  $('arr-done').addEventListener('click', endArrange);
+  $('arr-reset').addEventListener('click', function () {
+    save.pos = null; applyPos();
+    capturePos(); applyPos();
+    Object.keys(groups).forEach(function (k) { setLock(k, true); });
+  });
+
   function showLift() {
     rootEl.style.setProperty('--lift', LIFTS[save.lift] + 'px');
     $('lift').textContent = LIFT_NAMES[save.lift];
@@ -1359,6 +1489,7 @@
     if (D.skill) { $('skill-label').textContent = D.skill.name; $('k-skill').textContent = D.skill.short; }
     resetTraffic();
     $('garage').hidden = true; $('hud').hidden = false; $('pad').hidden = false;
+    fitView();
   }
   function crash(x, z) {
     state = 'over'; overT = 1.3; shake = 0.7;
@@ -1452,6 +1583,7 @@
     Object.keys(held).forEach(function (n) { src.key[n] = src.touch[n] = src.mouse[n] = false; held[n] = false; buttons[n].classList.remove('on'); });
   }
   window.addEventListener('keydown', function (e) {
+    if (state === 'edit') return;
     if (state === 'menu') {
       if (e.key === 'ArrowLeft') { select(sel - 1); e.preventDefault(); }
       else if (e.key === 'ArrowRight') { select(sel + 1); e.preventDefault(); }
@@ -1647,7 +1779,7 @@
       if (pz > lim) { pz = lim; vz = 0; }
       if (pz < -lim) { pz = -lim; vz = 0; }
       updateTraffic(dtW);
-    } else if (state === 'menu') {
+    } else if (state === 'menu' || state === 'edit') {
       v = 14; vz = 0; menuAngle += dt * 0.28;
     } else {
       v = Math.max(0, v - 70 * dt); vz = 0;
