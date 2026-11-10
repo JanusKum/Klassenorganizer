@@ -277,7 +277,7 @@
     var cnt = document.getElementById('passed');
     if (cnt && cnt.offsetParent) {
       var r = cnt.getBoundingClientRect();
-      if (r.right > 200 && r.right + 14 < w) w = r.right + 14;
+      if (r.right > 200 && r.right + 20 < w) w = r.right + 20;
     }
     if (!isFinite(w) || w < 200) w = window.innerWidth;
     rootEl.style.setProperty('--vw', Math.round(w) + 'px');
