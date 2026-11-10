@@ -83,7 +83,7 @@
   @keyframes pop { 0% { opacity: 0; transform: scale(0.7); } 12% { opacity: 1; transform: scale(1); } 75% { opacity: 1; } 100% { opacity: 0; transform: scale(1.15); } }
 
   .pad { bottom: 0; padding-bottom: 22px; align-items: flex-end; gap: 12px;
-    padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); }
+    padding-left: max(22px, calc(env(safe-area-inset-left, 0px) + 8px)); padding-right: max(22px, calc(env(safe-area-inset-right, 0px) + 8px)); }
   .pad .col { flex: 1 1 0; min-width: 0; max-width: 320px; display: flex; flex-direction: column; gap: 10px; pointer-events: auto; }
   .pad .row { display: flex; gap: 10px; }
   .pad .steer { flex: 0 0 auto; pointer-events: auto; }
@@ -1290,7 +1290,7 @@
     var r = $('g-result');
     if (result) { r.innerHTML = result; r.hidden = false; } else { r.hidden = true; }
     select(unlocked(sel) ? sel : save.car);
-    Object.keys(held).forEach(function (n) { setHeld(n, false); });
+    clearHeld();
   }
   function start() {
     if (!unlocked(sel) || state !== 'menu') return;
@@ -1390,7 +1390,16 @@
                a: 'left', d: 'right', w: 'gas', s: 'brake', Shift: 'nitro', n: 'nitro' };
   var buttons = { left: $('k-left'), right: $('k-right'), gas: $('k-gas'), brake: $('k-brake'), nitro: $('k-nitro') };
   function keyName(e) { return KEYS[e.key.length === 1 ? e.key.toLowerCase() : e.key]; }
-  function setHeld(name, on) { held[name] = on; buttons[name].classList.toggle('on', on); }
+  /* Drei Quellen (Tastatur, Finger, Maus) werden zusammengeführt, damit sie sich nicht gegenseitig loslassen */
+  var src = { key: {}, touch: {}, mouse: {} };
+  function setHeld(name, on, from) {
+    src[from || 'key'][name] = on;
+    var any = !!(src.key[name] || src.touch[name] || src.mouse[name]);
+    held[name] = any; buttons[name].classList.toggle('on', any);
+  }
+  function clearHeld() {
+    Object.keys(held).forEach(function (n) { src.key[n] = src.touch[n] = src.mouse[n] = false; held[n] = false; buttons[n].classList.remove('on'); });
+  }
   window.addEventListener('keydown', function (e) {
     if (state === 'menu') {
       if (e.key === 'ArrowLeft') { select(sel - 1); e.preventDefault(); }
@@ -1405,21 +1414,55 @@
     setHeld(name, true);
   });
   window.addEventListener('keyup', function (e) { var name = keyName(e); if (name) setHeld(name, false); });
-  window.addEventListener('blur', function () { Object.keys(held).forEach(function (n) { setHeld(n, false); }); });
+  window.addEventListener('blur', function () { clearHeld(); });
+  /* Maus: Tasten direkt */
   Object.keys(buttons).forEach(function (name) {
     var b = buttons[name];
     b.addEventListener('pointerdown', function (e) {
-      e.preventDefault();
-      try { b.setPointerCapture(e.pointerId); } catch (err) {}
-      setHeld(name, true);
+      if (e.pointerType === 'touch') return;
+      e.preventDefault(); setHeld(name, true, 'mouse');
     });
-    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (ev) {
-      b.addEventListener(ev, function () { setHeld(name, false); });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) {
+      b.addEventListener(ev, function (e) { if (e.pointerType !== 'touch') setHeld(name, false, 'mouse'); });
     });
     b.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   });
-  $('k-skill').addEventListener('pointerdown', function (e) { e.preventDefault(); useSkill(); });
+  $('k-skill').addEventListener('pointerdown', function (e) { if (e.pointerType === 'touch') return; e.preventDefault(); useSkill(); });
   $('k-skill').addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+  /* Finger: alle Berührungen werden bei jedem Ereignis neu gegen die Tasten geprüft (mehrere Finger gleichzeitig).
+     Wer neben die Tasten tippt, lenkt: linke Bildschirmhälfte = links, rechte = rechts. */
+  var TOUCH_KEYS = ['left', 'right', 'gas', 'brake', 'nitro', 'skill'];
+  function keyAt(x, y) {
+    for (var i = 0; i < TOUCH_KEYS.length; i++) {
+      var n = TOUCH_KEYS[i], el = n === 'skill' ? $('k-skill') : buttons[n];
+      if (el.hidden) continue;
+      var r = el.getBoundingClientRect();
+      if (!r.width) continue;
+      if (x >= r.left - 6 && x <= r.right + 6 && y >= r.top - 6 && y <= r.bottom + 6) return n;
+    }
+    return null;
+  }
+  function onTouch(e) {
+    if (state !== 'run') return;
+    if (e.cancelable) e.preventDefault();
+    var now = {}, i, t, n;
+    for (i = 0; i < e.touches.length; i++) {
+      t = e.touches[i]; n = keyAt(t.clientX, t.clientY);
+      if (n && n !== 'skill') now[n] = true;
+      else if (!n) now[t.clientX < window.innerWidth / 2 ? 'left' : 'right'] = true;
+    }
+    if (e.type === 'touchstart') {
+      for (i = 0; i < e.changedTouches.length; i++) {
+        t = e.changedTouches[i];
+        if (keyAt(t.clientX, t.clientY) === 'skill') useSkill();
+      }
+    }
+    Object.keys(buttons).forEach(function (k) { setHeld(k, !!now[k], 'touch'); });
+  }
+  ['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach(function (ev) {
+    document.addEventListener(ev, onTouch, { passive: false });
+  });
   $('start').addEventListener('click', start);
   $('prev').addEventListener('click', function () { select(sel - 1); });
   $('next').addEventListener('click', function () { select(sel + 1); });
