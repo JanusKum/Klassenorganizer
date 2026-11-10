@@ -88,7 +88,7 @@
   .pad .row { display: flex; gap: 10px; }
   .pad .steer { flex: 0 0 auto; pointer-events: auto; }
   .key {
-    flex: 1 1 0; min-width: 0; height: clamp(70px, 20vw, 96px); padding: 0 2px; overflow: hidden;
+    flex: 1 1 0; min-width: 0; height: clamp(70px, calc(12vmin + 24px), 116px); padding: 0 2px; overflow: hidden;
     font: 700 clamp(17px, 5vw, 26px) var(--display); letter-spacing: 0.03em; text-transform: uppercase;
     color: var(--fg);
     background: var(--panel);
@@ -97,7 +97,9 @@
     -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
     -webkit-tap-highlight-color: transparent;
   }
-  .steer .key { flex: 0 0 clamp(70px, 22vw, 104px); font-size: 30px; }
+  .steer .key { flex: 0 0 auto; width: clamp(72px, calc(14vmin + 24px), 130px); display: grid; place-items: center; }
+  .steer .key svg { width: 42%; height: 42%; fill: currentColor; }
+  .key.on svg { fill: #17120a; }
   .key.small { height: clamp(56px, 15vw, 70px); font-size: clamp(15px, 4.4vw, 22px); }
   .key.on { background: var(--accent); color: #17120a; border-color: var(--accent); }
   .key.boost { color: var(--nitro); border-color: rgba(79, 216, 255, 0.5); }
@@ -170,8 +172,8 @@
   /* Am sichtbaren Bildschirm festmachen (Werte setzt das Skript aus dem sichtbaren Ausschnitt) */
   html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
   #stage { position: fixed; top: var(--vvt, 0px); left: 0; width: 100%; height: var(--vvh, 100%); }
-  .hud { position: fixed; top: var(--vvt, 0px); }
-  .pad { position: fixed; bottom: auto; top: calc(var(--vvt, 0px) + var(--vvh, 100vh) - var(--lift, 0px)); transform: translateY(-100%); }
+  .hud { position: fixed; top: var(--vvt, 0px); right: auto; width: var(--vw, 100%); box-sizing: border-box; }
+  .pad { position: fixed; bottom: auto; right: auto; width: var(--vw, 100%); box-sizing: border-box; top: calc(var(--vvt, 0px) + var(--vvh, 100vh) - var(--lift, 0px)); transform: translateY(-100%); }
   .garage { position: fixed; top: var(--vvt, 0px); bottom: auto; height: var(--vvh, 100%); }
   .opt { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
   .opt button { height: 40px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--fg); font: 700 17px var(--display); letter-spacing: 0.04em; text-transform: uppercase; cursor: pointer; }
@@ -212,8 +214,8 @@
     </div>
   </div>
   <div class="row steer">
-    <button id="k-left" class="key" type="button" aria-label="Nach links lenken">&#9664;</button>
-    <button id="k-right" class="key" type="button" aria-label="Nach rechts lenken">&#9654;</button>
+    <button id="k-left" class="key" type="button" aria-label="Nach links lenken"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M7.5 1 L2 5 L7.5 9 Z"/></svg></button>
+    <button id="k-right" class="key" type="button" aria-label="Nach rechts lenken"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 1 L8 5 L2.5 9 Z"/></svg></button>
   </div>
 </div>
 
@@ -269,6 +271,16 @@
     var vv = window.visualViewport;
     var h = vv ? vv.height : window.innerHeight, t = vv ? vv.offsetTop : 0;
     if (!h || h < 100) h = window.innerHeight || document.documentElement.clientHeight;
+    var cands = [window.innerWidth, document.documentElement.clientWidth];
+    if (vv && vv.width) cands.push(vv.width);
+    var w = Math.min.apply(null, cands.filter(function (x) { return x > 200; }));
+    var cnt = document.getElementById('passed');
+    if (cnt && cnt.offsetParent) {
+      var r = cnt.getBoundingClientRect();
+      if (r.right > 200 && r.right + 16 < w) w = r.right + 16;
+    }
+    if (!isFinite(w) || w < 200) w = window.innerWidth;
+    rootEl.style.setProperty('--vw', Math.round(w) + 'px');
     rootEl.style.setProperty('--vvh', Math.round(h) + 'px');
     rootEl.style.setProperty('--vvt', Math.round(t) + 'px');
   }
