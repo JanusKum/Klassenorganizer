@@ -13,7 +13,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0a0d16">
 <style>
-  html { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
   body { margin: 0; font: 14px system-ui, sans-serif; }
   img { max-width: 100%; }
   [hidden] { display: none !important; }
@@ -46,8 +45,8 @@
     -webkit-user-select: none; user-select: none;
     -webkit-touch-callout: none;
   }
-  #stage { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
-  .vig { position: absolute; inset: 0; pointer-events: none; transition: background 0.3s;
+  #stage { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .vig { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; transition: background 0.3s;
     background: radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 52%, rgba(0,0,0,0.55) 100%); }
   body.slow .vig { background: radial-gradient(ellipse at 50% 45%, rgba(60,120,255,0.08) 30%, rgba(10,30,90,0.6) 100%); }
 
@@ -58,7 +57,7 @@
     display: flex; justify-content: space-between; gap: 12px;
     pointer-events: none;
   }
-  .hud { top: 0; padding-block: 14px 0; align-items: flex-start; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6); }
+  .hud { top: 0; padding-top: 14px; align-items: flex-start; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6); }
   .speed { font-family: var(--display); font-weight: 700; line-height: 0.9; font-variant-numeric: tabular-nums; }
   .speed b { font-size: clamp(52px, 15vw, 92px); color: var(--accent); }
   .speed span { font-size: 18px; color: var(--muted); letter-spacing: 0.06em; margin-left: 4px; }
@@ -71,6 +70,7 @@
   .meter.empty i { box-shadow: none; }
   .count { text-align: right; font-family: var(--display); font-weight: 500; font-size: 18px; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
   .count b { font-size: 38px; font-weight: 700; display: block; line-height: 1; }
+  .count b.dbl { color: var(--skill); }
   .count small { color: var(--accent); font-size: 16px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
 
   .toast {
@@ -82,21 +82,23 @@
   .toast.show { animation: pop 1.6s ease-out; }
   @keyframes pop { 0% { opacity: 0; transform: scale(0.7); } 12% { opacity: 1; transform: scale(1); } 75% { opacity: 1; } 100% { opacity: 0; transform: scale(1.15); } }
 
-  .pad { bottom: 0; padding-block: 0 16px; align-items: flex-end; }
-  .pad .col { flex: 0 1 216px; min-width: 0; display: flex; flex-direction: column; gap: 8px; pointer-events: auto; }
-  .pad .row { display: flex; gap: 8px; }
+  .pad { bottom: 0; padding-bottom: 22px; align-items: flex-end; gap: 12px;
+    padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); }
+  .pad .col { flex: 1 1 0; min-width: 0; max-width: 320px; display: flex; flex-direction: column; gap: 10px; pointer-events: auto; }
+  .pad .row { display: flex; gap: 10px; }
   .pad .steer { flex: 0 0 auto; pointer-events: auto; }
   .key {
-    flex: 1 1 0; min-width: 0; height: 66px; padding: 0 4px;
-    font: 700 21px var(--display); letter-spacing: 0.04em; text-transform: uppercase;
+    flex: 1 1 0; min-width: 0; height: clamp(70px, 20vw, 96px); padding: 0 2px; overflow: hidden;
+    font: 700 clamp(17px, 5vw, 26px) var(--display); letter-spacing: 0.03em; text-transform: uppercase;
     color: var(--fg);
     background: var(--panel);
-    border: 1px solid var(--line); border-radius: 18px;
+    border: 2px solid var(--line); border-radius: 20px;
     touch-action: none; cursor: pointer;
-    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    -webkit-tap-highlight-color: transparent;
   }
-  .steer .key { flex: 0 0 66px; }
-  .key.small { height: 52px; font-size: 19px; }
+  .steer .key { flex: 0 0 clamp(70px, 22vw, 104px); font-size: 30px; }
+  .key.small { height: clamp(56px, 15vw, 70px); font-size: clamp(15px, 4.4vw, 22px); }
   .key.on { background: var(--accent); color: #17120a; border-color: var(--accent); }
   .key.boost { color: var(--nitro); border-color: rgba(79, 216, 255, 0.5); }
   .key.boost.on { background: var(--nitro); color: #04202b; border-color: var(--nitro); box-shadow: 0 0 24px rgba(79, 216, 255, 0.6); }
@@ -107,13 +109,13 @@
 
   /* Garage */
   .garage {
-    position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; align-items: center;
-    padding-block: 16px;
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: space-between; align-items: center; gap: 10px;
+    padding-top: 16px; padding-bottom: 16px;
     padding-left: max(16px, env(safe-area-inset-left, 0px));
     padding-right: max(16px, env(safe-area-inset-right, 0px));
     pointer-events: none;
   }
-  .g-top { width: 100%; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7); }
+  .g-top { flex: 0 0 auto; width: 100%; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7); }
   .g-top h1 { margin: 0; font: 700 clamp(34px, 9vw, 54px) var(--display); line-height: 0.95; letter-spacing: 0.02em; text-transform: uppercase; }
   .g-top h1 span { color: var(--accent); }
   .g-top p { margin: 4px 0 0; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -121,11 +123,17 @@
   .g-result { display: inline-block; margin-top: 10px !important; padding: 8px 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); color: var(--fg) !important; font-size: 14px !important; backdrop-filter: blur(10px); text-shadow: none; }
   .g-result b { color: var(--accent) !important; font-weight: 500; }
   .sheet {
-    width: min(470px, 100%); pointer-events: auto;
+    flex: 0 1 auto; min-height: 0; width: min(480px, 100%); pointer-events: auto;
     background: var(--panel); border: 1px solid var(--line); border-radius: 22px;
-    padding: 16px; backdrop-filter: blur(14px);
+    padding: 16px; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
     display: flex; flex-direction: column; gap: 10px;
   }
+  .s-scroll { flex: 0 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  .s-foot { flex: 0 0 auto; display: flex; flex-direction: column; gap: 10px; }
+  .lvl { display: flex; align-items: center; justify-content: space-between; gap: 8px; font: 700 18px var(--display); letter-spacing: 0.06em; text-transform: uppercase; }
+  .lvl button { flex: 0 0 46px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--fg); font-size: 14px; cursor: pointer; }
+  .err { position: absolute; top: 4px; left: 8px; right: 8px; text-align: center; font-size: 12px; color: var(--danger); pointer-events: none; }
+  @media (hover: none) { .help { display: none; } }
   .s-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
   .s-head small { display: block; font-size: 12px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
   .s-head h2 { margin: 0; font: 700 34px var(--display); line-height: 1; letter-spacing: 0.02em; text-transform: uppercase; }
@@ -138,12 +146,12 @@
   .stats dd { margin: 0; height: 7px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
   .stats i { display: block; height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.25s; }
   .picker { display: flex; gap: 8px; align-items: center; }
-  .picker > button { flex: 0 0 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--fg); font-size: 14px; cursor: pointer; }
+  .picker > button { flex: 0 0 46px; height: 46px; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--fg); font-size: 14px; cursor: pointer; }
   .strip { flex: 1 1 0; min-width: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px; }
   .strip::-webkit-scrollbar { display: none; }
   .chip {
-    flex: 0 0 40px; height: 40px; border-radius: 12px; cursor: pointer;
-    font: 700 18px var(--display); font-variant-numeric: tabular-nums;
+    flex: 0 0 46px; height: 46px; border-radius: 12px; cursor: pointer;
+    font: 700 20px var(--display); font-variant-numeric: tabular-nums;
     color: var(--fg); background: rgba(255, 255, 255, 0.08); border: 1px solid var(--line);
   }
   .chip.locked { color: var(--muted); background: transparent; border-style: dashed; }
@@ -152,14 +160,22 @@
   .lock div { height: 7px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
   .lock i { display: block; height: 100%; background: var(--skill); }
   .go {
-    width: 100%; height: 54px;
-    font: 700 24px var(--display); letter-spacing: 0.06em; text-transform: uppercase;
+    width: 100%; height: 60px; flex: 0 0 auto;
+    font: 700 26px var(--display); letter-spacing: 0.06em; text-transform: uppercase;
     color: #17120a; background: var(--accent);
     border: 0; border-radius: 16px; cursor: pointer;
   }
   .go:disabled { background: rgba(255, 255, 255, 0.1); color: var(--muted); cursor: default; }
   .help { margin: 0; font-size: 11.5px; color: var(--muted); text-align: center; line-height: 1.5; }
-  #fail { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); }
+  #fail { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); }
+</style>
+<style>
+  /* Als App: Seite fest am sichtbaren Bildschirm, Abstand zu Notch und Home-Balken */
+  html { height: 100%; }
+  body { position: fixed; top: 0; left: 0; right: 0; bottom: 0; height: auto; }
+  .hud { padding-top: calc(14px + env(safe-area-inset-top, 0px)); }
+  .pad { padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px)); }
+  .garage { padding-top: calc(16px + env(safe-area-inset-top, 0px)); padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
 </style>
 </head>
 <body>
@@ -200,28 +216,38 @@
     <p id="g-result" class="g-result" hidden></p>
   </header>
   <section class="sheet">
-    <div class="s-head">
-      <div><small id="c-idx">Auto 1 / 20</small><h2 id="c-name">Nachtfalke</h2></div>
-      <div class="s-skill"><small>Fähigkeit</small><b id="c-skill">Keine</b></div>
+    <div class="s-scroll">
+      <div class="s-head">
+        <div><small id="c-idx">Auto 1 / 20</small><h2 id="c-name">Nachtfalke</h2></div>
+        <div class="s-skill"><small>Fähigkeit</small><b id="c-skill">Keine</b></div>
+      </div>
+      <p id="c-desc" class="s-desc"></p>
+      <dl class="stats">
+        <dt>Tempo</dt><dd><i id="st-top"></i></dd>
+        <dt>Antritt</dt><dd><i id="st-acc"></i></dd>
+        <dt>Lenkung</dt><dd><i id="st-grip"></i></dd>
+        <dt>Nitro</dt><dd><i id="st-nitro"></i></dd>
+      </dl>
+      <div id="lock" class="lock" hidden><div><i id="lock-fill"></i></div><span id="lock-text"></span></div>
+      <p class="help">Tastatur: Pfeile lenken, Gas und Bremse · Shift = Nitro · Leertaste = Fähigkeit</p>
     </div>
-    <p id="c-desc" class="s-desc"></p>
-    <dl class="stats">
-      <dt>Tempo</dt><dd><i id="st-top"></i></dd>
-      <dt>Antritt</dt><dd><i id="st-acc"></i></dd>
-      <dt>Lenkung</dt><dd><i id="st-grip"></i></dd>
-      <dt>Nitro</dt><dd><i id="st-nitro"></i></dd>
-    </dl>
-    <div class="picker">
-      <button id="prev" type="button" aria-label="Vorheriges Auto">&#9664;</button>
-      <div id="strip" class="strip"></div>
-      <button id="next" type="button" aria-label="Nächstes Auto">&#9654;</button>
+    <div class="s-foot">
+      <div class="picker">
+        <button id="prev" type="button" aria-label="Vorheriges Auto">&#9664;</button>
+        <div id="strip" class="strip"></div>
+        <button id="next" type="button" aria-label="Nächstes Auto">&#9654;</button>
+      </div>
+      <div id="lvl" class="lvl" hidden>
+        <button id="lvl-down" type="button" aria-label="Niedrigere Startstufe">&#9664;</button>
+        <span id="lvl-text">Start ab Stufe 1</span>
+        <button id="lvl-up" type="button" aria-label="Höhere Startstufe">&#9654;</button>
+      </div>
+      <button id="start" class="go" type="button">Start</button>
     </div>
-    <div id="lock" class="lock" hidden><div><i id="lock-fill"></i></div><span id="lock-text"></span></div>
-    <button id="start" class="go" type="button">Start</button>
-    <p class="help">Tastatur: Pfeile lenken, Gas und Bremse · Shift = Nitro · Leertaste = Fähigkeit</p>
   </section>
 </div>
 
+<div id="err" class="err" hidden></div>
 <div id="fail" hidden>Das Spiel konnte nicht gestartet werden. Bitte die Seite neu laden oder einen anderen Browser probieren.</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -229,6 +255,10 @@
 (function () {
   function $(id) { return document.getElementById(id); }
   function rnd(a, b) { return a + Math.random() * (b - a); }
+  window.addEventListener('error', function (e) {
+    var el = $('err'); if (!el || !e || !e.message) return;
+    el.textContent = 'Fehler: ' + e.message; el.hidden = false;
+  });
   var canvas = $('stage');
   var renderer;
   try {
@@ -850,8 +880,8 @@
       cab: extrude(c, 1.46 * P.w / 1.82, 0.04, function (x, y) { return 1 - 0.45 * Math.max(0, y - P.hood); })
     };
   }
-  var stdGeos = makeGeos(TYPES[0]);
-  stdGeos.body.userData.shared = true; stdGeos.cab.userData.shared = true;
+  var stdGeos = TYPES.map(makeGeos);
+  stdGeos.forEach(function (g) { g.body.userData.shared = true; g.cab.userData.shared = true; });
 
   var tireGeo = new THREE.CylinderGeometry(0.34, 0.34, 0.26, 48); tireGeo.rotateX(Math.PI / 2);
   var rimGeo = new THREE.CylinderGeometry(0.245, 0.245, 0.265, 40); rimGeo.rotateX(Math.PI / 2);
@@ -902,30 +932,54 @@
     addBox(car, P.roofF - P.roofR + 0.2, 0.03, 1.08 * P.w / 1.82, (P.roofF + P.roofR) / 2, P.roof + 0.045, 0, paint);
   }
 
-  /* Verkehrsauto (einfach) */
-  function buildTrafficCar(color) {
-    var P = TYPES[0], car = new THREE.Group(), wheels = [];
+  /* Verkehrsautos in vier Karosserieformen */
+  function buildTrafficCar(color, t) {
+    var P = TYPES[t], car = new THREE.Group(), wheels = [], wz = 0.8 * P.w / 1.82, tailY = P.tail - 0.16;
     var paint = new THREE.MeshPhysicalMaterial({ color: color, metalness: 0.55, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.05 });
-    car.add(new THREE.Mesh(stdGeos.body, paint));
-    car.add(new THREE.Mesh(stdGeos.cab, glass));
+    car.add(new THREE.Mesh(stdGeos[t].body, paint));
+    car.add(new THREE.Mesh(stdGeos[t].cab, glass));
     roofPanel(car, P, paint);
-    addBox(car, 1.0, 0.26, 1.1, -0.3, P.belt + 0.12, 0, seatMat);
+    addBox(car, 0.9, 0.24, 1.0, (P.cabF + P.cabR) / 2 - 0.1, P.belt + 0.1, 0, seatMat);
     addBox(car, 3.4, 0.3, 1.32, 0, 0.35, 0, dark);
     addBox(car, 0.3, 0.2, 1.3, -2.2, 0.36, 0, dark);
     addBox(car, 0.03, 0.11, 0.42, -2.34, 0.52, 0, plateMat);
     var bl = [];
     [-1, 1].forEach(function (s) {
-      addBox(car, 0.06, 0.045, 0.4, 2.3, 0.44, s * 0.56, headMat).rotation.y = s * -0.25;
-      addBox(car, 0.06, 0.05, 0.46, -2.3, 0.68, s * 0.56, tailMat).rotation.y = s * 0.2;
-      addGlow(car, tailGlow, -2.36, 0.68, s * 0.56, 1.1);
-      var b = addGlow(car, blinkGlow, -2.2, 0.62, s * 0.92, 1.3); b.visible = false; bl.push(b);
+      addBox(car, 0.06, 0.045, 0.4, 2.3, P.nose + 0.02, s * 0.56, headMat).rotation.y = s * -0.25;
+      addBox(car, 0.06, 0.05, 0.46, -2.3, tailY, s * 0.56, tailMat).rotation.y = s * 0.2;
+      addGlow(car, tailGlow, -2.36, tailY, s * 0.56, 1.1);
+      var b = addGlow(car, blinkGlow, -2.2, tailY - 0.05, s * (P.w / 2 + 0.01), 1.3); b.visible = false; bl.push(b);
     });
-    [[FX, 0.8], [FX, -0.8], [RX, 0.8], [RX, -0.8]].forEach(function (p) { simpleWheel(car, p[0], WY, p[1], 1, wheels); });
+    [[FX, wz], [FX, -wz], [RX, wz], [RX, -wz]].forEach(function (p) { simpleWheel(car, p[0], WY, p[1], 1, wheels); });
     addDecal(car, blobMat, 6.2, 3.0, 0, -0.02);
     addDecal(car, tailRefl, 6, 2.4, -4.2, -0.015);
     car.position.y = 0.04; car.visible = false;
     scene.add(car);
     return { group: car, wheels: wheels, wr: 0.34, hl: 2.3, hw: 0.92, blinkL: bl[0], blinkR: bl[1] };
+  }
+  /* Transporter */
+  function buildVan(color) {
+    var van = new THREE.Group(), wheels = [];
+    var paint = new THREE.MeshPhysicalMaterial({ color: color, metalness: 0.4, roughness: 0.35, clearcoat: 1 });
+    addBox(van, 4.9, 1.0, 1.92, 0, 0.85, 0, paint);
+    addBox(van, 3.7, 0.85, 1.86, -0.55, 1.75, 0, paint);
+    addBox(van, 0.9, 0.7, 1.8, 1.55, 1.62, 0, glass).rotation.z = 0.5;
+    addBox(van, 2.2, 0.5, 1.9, -0.9, 1.8, 0, glass);
+    addBox(van, 4.7, 0.25, 1.5, 0, 0.4, 0, dark);
+    addBox(van, 0.03, 0.11, 0.42, -2.47, 0.7, 0, plateMat);
+    var bl = [];
+    [-1, 1].forEach(function (s) {
+      addBox(van, 0.05, 0.12, 0.34, 2.46, 0.9, s * 0.72, headMat);
+      addBox(van, 0.05, 0.5, 0.12, -2.46, 1.35, s * 0.86, tailMat);
+      addGlow(van, tailGlow, -2.52, 1.35, s * 0.86, 1.2);
+      var b = addGlow(van, blinkGlow, -2.5, 1.0, s * 0.97, 1.3); b.visible = false; bl.push(b);
+      [1.6, -1.6].forEach(function (x) { simpleWheel(van, x, 0.37, s * 0.86, 1.1, wheels); });
+    });
+    addDecal(van, blobMat, 6.6, 3.2, 0, -0.02);
+    addDecal(van, tailRefl, 6, 2.5, -4.4, -0.015);
+    van.position.y = 0.04; van.visible = false;
+    scene.add(van);
+    return { group: van, wheels: wheels, wr: 0.37, hl: 2.5, hw: 0.98, blinkL: bl[0], blinkR: bl[1] };
   }
   function buildTruck(color) {
     var tr = new THREE.Group(), wheels = [];
@@ -954,19 +1008,24 @@
   }
 
   /* ---------- Die 20 Autos ---------- */
+  /* Von schwach nach stark. Jede Fähigkeit gehört zu zwei Autos, das zweite hat sie etwas stärker. */
   var SKILLS = [
-    { id: 'jump', name: 'Sprung', desc: 'Springt für einen Moment über den Verkehr hinweg.', dur: 0.95, cool: 9, from: 2 },
-    { id: 'slow', name: 'Zeitlupe', desc: 'Alles um dich herum wird langsam, deine Lenkung bleibt schnell.', dur: 2.8, cool: 14, from: 7 },
-    { id: 'ghost', name: 'Phantom', desc: 'Fährt kurz durch andere Fahrzeuge einfach hindurch.', dur: 2.2, cool: 13, from: 12 },
-    { id: 'shield', name: 'Schild', desc: 'Schleudert Fahrzeuge weg, die du berührst. Zählt als überholt.', dur: 3.0, cool: 14, from: 16 }
+    { id: 'dash', name: 'Blitz', short: 'Blitz', desc: 'Wechselt sofort eine Spur in die Richtung, in die du lenkst.', dur: 0.25, cool: 4, from: 2 },
+    { id: 'jump', name: 'Sprung', short: 'Sprung', desc: 'Springt für einen Moment über den Verkehr hinweg.', dur: 0.95, cool: 9, from: 4 },
+    { id: 'refill', name: 'Nitroflut', short: 'Nitro+', desc: 'Füllt den Nitro-Tank sofort wieder auf.', dur: 0.3, cool: 16, from: 6 },
+    { id: 'mini', name: 'Schrumpfen', short: 'Mini', desc: 'Dein Auto wird kurz halb so groß und passt durch enge Lücken.', dur: 3.5, cool: 12, from: 8 },
+    { id: 'slow', name: 'Zeitlupe', short: 'Zeitlupe', desc: 'Alles um dich herum wird langsam, deine Lenkung bleibt schnell.', dur: 2.8, cool: 14, from: 10 },
+    { id: 'double', name: 'Doppelt', short: 'Doppelt', desc: 'Jede Überholung zählt für kurze Zeit doppelt.', dur: 6, cool: 16, from: 12 },
+    { id: 'ghost', name: 'Phantom', short: 'Phantom', desc: 'Fährt kurz durch andere Fahrzeuge einfach hindurch.', dur: 2.2, cool: 13, from: 14 },
+    { id: 'clear', name: 'Schockwelle', short: 'Welle', desc: 'Fegt alle Fahrzeuge auf deiner Spur vor dir weg.', dur: 0.4, cool: 14, from: 16 },
+    { id: 'shield', name: 'Schild', short: 'Schild', desc: 'Schleudert Fahrzeuge weg, die du berührst. Zählt als überholt.', dur: 3.0, cool: 14, from: 18 }
   ];
-  /* Die starken Fähigkeiten kommen erst bei den späten Autos: 1-2 keine, 3-7 Sprung, 8-12 Zeitlupe, 13-16 Phantom, 17-20 Schild */
   function skillFor(i) {
     var pick = null;
     SKILLS.forEach(function (s) { if (i >= s.from) pick = s; });
     if (!pick) return null;
     var step = i - pick.from;
-    return { id: pick.id, name: pick.name, desc: pick.desc, dur: pick.dur * (1 + 0.06 * step), cool: pick.cool * (1 - 0.05 * step) };
+    return { id: pick.id, name: pick.name, short: pick.short, desc: pick.desc, dur: pick.dur * (1 + 0.15 * step), cool: pick.cool * (1 - 0.1 * step) };
   }
   var NAMES = ['Nachtfalke', 'Pfeil S', 'Bulle 8', 'Schatten', 'Sturmvogel', 'Klinge R', 'Donner GT', 'Irrlicht', 'Polarstern', 'Komet X',
                'Gigant V', 'Nebelgeist', 'Feuerfalke', 'Laser RS', 'Vulkan 12', 'Spektrum', 'Sonnenwind', 'Photon', 'Koloss', 'Sternenjäger'];
@@ -990,7 +1049,7 @@
 
   /* Spielerauto: je höher die Stufe des Autos, desto mehr Anbauteile und Leuchten */
   function buildHero(D) {
-    var P = TYPES[D.type], geos = makeGeos(P), car = new THREE.Group(), wheels = [];
+    var P = TYPES[D.type], geos = stdGeos[D.type], car = new THREE.Group(), wheels = [];
     var wz = 0.8 * P.w / 1.82, side = P.w / 2 + 0.062;
     var paint = new THREE.MeshPhysicalMaterial({
       color: D.color, metalness: D.chrome ? 1 : 0.62, roughness: D.chrome ? 0.1 : 0.26 - D.tier * 0.02,
@@ -1080,7 +1139,8 @@
   var TRAFFIC_COLORS = [0xcfd8e2, 0x1746b8, 0xa6d629, 0xf2f2f2, 0x2b2f36, 0xe08a1e, 0x1f8a70, 0x7b3fc4, 0xd8c21f, 0x8c1c2c,
                         0x3aa0d8, 0x55606e, 0xb8442a, 0x2f6b3a, 0x9aa4b2, 0x6a2a7a];
   var traffic = [];
-  TRAFFIC_COLORS.forEach(function (c) { traffic.push(buildTrafficCar(c)); });
+  TRAFFIC_COLORS.forEach(function (c, i) { traffic.push(buildTrafficCar(c, i % 4)); });
+  [0xe8eaee, 0xd8a01f].forEach(function (c) { traffic.push(buildVan(c)); });
   [0x1746b8, 0xc23a2a, 0x1f8a70].forEach(function (c) { traffic.push(buildTruck(c)); });
   traffic.forEach(function (c) { c.x = 9999; c.lane = 0; c.z = 0; c.v = 0; c.base = 0; c.behind = false; c.active = false; c.chg = 0; c.to = 0; c.from = 0; });
 
@@ -1113,17 +1173,29 @@
   }
 
   /* ---------- Spielstand ---------- */
-  var save = { total: 0, best: 0, car: 0 };
+  var save = { total: 0, best: 0, car: 0, maxLevel: 1, startLevel: 1 };
   try {
     var rawSave = JSON.parse(localStorage.getItem('nachtfalke-save') || 'null');
-    if (rawSave) { save.total = rawSave.total | 0; save.best = rawSave.best | 0; save.car = rawSave.car | 0; }
+    if (rawSave) { save.total = rawSave.total | 0; save.best = rawSave.best | 0; save.car = rawSave.car | 0; save.maxLevel = (rawSave.maxLevel | 0) || 1; save.startLevel = (rawSave.startLevel | 0) || 1; }
     else { save.best = parseInt(localStorage.getItem('nachtfalke-best') || '0', 10) || 0; }
   } catch (e) {}
   function persist() { try { localStorage.setItem('nachtfalke-save', JSON.stringify(save)); } catch (e) {} }
   function unlocked(i) { return save.total >= CARS[i].need; }
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {}); } catch (e) {}
+  function allowedStart() { var a = [1]; [5, 10, 15].forEach(function (l) { if (save.maxLevel >= l) a.push(l); }); return a; }
+  function showLvl() {
+    var a = allowedStart();
+    if (a.indexOf(save.startLevel) < 0) save.startLevel = 1;
+    $('lvl').hidden = a.length < 2;
+    $('lvl-text').textContent = 'Start ab Stufe ' + save.startLevel;
+  }
+  function stepLvl(d) {
+    var a = allowedStart(), k = a.indexOf(save.startLevel);
+    save.startLevel = a[(k + d + a.length) % a.length]; persist(); showLvl();
+  }
 
   var state = 'menu', sel = Math.min(19, Math.max(0, save.car)), D = CARS[sel], player = null;
-  var v = 14, pz = 0, vz = 0, passed = 0, level = 1, shake = 0, overT = 0, totalAtStart = 0, startBiome = 0;
+  var v = 14, pz = 0, vz = 0, passed = 0, level = 1, runStart = 1, shake = 0, overT = 0, totalAtStart = 0, startBiome = 0, miniS = 1;
   var nitro = 1, depleted = false, cool = 0, boost = 0, time = 0, ws = 1, jumpY = 0, menuAngle = 0.9;
   var sk = { active: false, t: 0, cd: 0 };
 
@@ -1214,6 +1286,7 @@
     traffic.forEach(park);
     pz = 0; vz = 0; v = 14; jumpY = 0; ws = 1; boost = 0;
     $('g-total').textContent = save.total; $('g-best').textContent = save.best;
+    showLvl(); miniS = 1;
     var r = $('g-result');
     if (result) { r.innerHTML = result; r.hidden = false; } else { r.hidden = true; }
     select(unlocked(sel) ? sel : save.car);
@@ -1222,16 +1295,17 @@
   function start() {
     if (!unlocked(sel) || state !== 'menu') return;
     save.car = sel; persist();
-    state = 'run'; v = 25; pz = 0; vz = 0; passed = 0; level = 1; shake = 0;
+    showLvl(); runStart = save.startLevel;
+    state = 'run'; v = 25; pz = 0; vz = 0; passed = 0; level = runStart; shake = 0; miniS = 1;
     nitro = 1; depleted = false; cool = 0; ws = 1; jumpY = 0;
     sk.active = false; sk.t = 0; sk.cd = 0;
     totalAtStart = save.total;
     startBiome = Math.floor(Math.random() * BIOMES.length);
     setBiome(startBiome, true);
-    showToast(BIOMES[startBiome].name, 'Stufe 1');
-    $('passed').textContent = '0'; $('level').textContent = 'Stufe 1';
+    showToast(BIOMES[startBiome].name, 'Stufe ' + level);
+    $('passed').textContent = '0'; $('passed').classList.remove('dbl'); $('level').textContent = 'Stufe ' + level;
     $('skillbar').hidden = !D.skill; $('k-skill').hidden = !D.skill;
-    if (D.skill) { $('skill-label').textContent = D.skill.name; $('k-skill').textContent = D.skill.name; }
+    if (D.skill) { $('skill-label').textContent = D.skill.name; $('k-skill').textContent = D.skill.short; }
     resetTraffic();
     $('garage').hidden = true; $('hud').hidden = false; $('pad').hidden = false;
   }
@@ -1253,14 +1327,16 @@
     openGarage(msg);
   }
   function countPass() {
-    passed++; save.total++;
+    var add = sk.active && D.skill.id === 'double' ? 2 : 1;
+    passed += add; save.total += add;
     $('passed').textContent = passed;
-    if (passed % 10 === 0) persist();
-    var lv = Math.min(20, 1 + Math.floor(passed / 8));
+    var lv = Math.min(20, runStart + Math.floor(passed / 8));
+    if (lv > save.maxLevel) save.maxLevel = lv;
+    persist();
     if (lv !== level) {
       level = lv;
       $('level').textContent = 'Stufe ' + level;
-      var nb = (startBiome + Math.floor((level - 1) / 2)) % BIOMES.length;
+      var nb = (startBiome + Math.floor((level - runStart) / 2)) % BIOMES.length;
       if (nb !== biome) { setBiome(nb, false); showToast(BIOMES[nb].name, 'Stufe ' + level); }
       else showToast('Stufe ' + level, null);
       var n = activeTarget();
@@ -1278,6 +1354,25 @@
     if (id === 'shield') player.shield.visible = true;
     if (id === 'ghost') { player.paint.transparent = true; player.paint.opacity = 0.3; player.paint.needsUpdate = true; player.aura.visible = true; }
     if (id === 'slow') document.body.classList.add('slow');
+    if (id === 'double') $('passed').classList.add('dbl');
+    if (id === 'dash') {
+      var dir = (held.right ? 1 : 0) - (held.left ? 1 : 0);
+      if (!dir) dir = Math.abs(vz) > 0.5 ? (vz > 0 ? 1 : -1) : (pz <= 0 ? 1 : -1);
+      var lim = HALF - 1.05;
+      pz = Math.max(-lim, Math.min(lim, pz + dir * LANE));
+      player.aura.visible = true;
+    }
+    if (id === 'refill') { nitro = 1; depleted = false; burst(-1, 0.8, pz, sparkCyan, 12); }
+    if (id === 'clear') {
+      shake = 0.25;
+      for (var i = 0; i < traffic.length; i++) {
+        var c = traffic[i];
+        if (c.active && c.x > 0 && c.x < 95 && Math.abs(c.z - pz) < c.hw + 1.1) {
+          burst(Math.min(c.x, 30), 0.8, c.z, sparkCyan, 4);
+          place(c, 210 + Math.random() * 80);
+        }
+      }
+    }
   }
   function endSkill(silent) {
     if (!sk.active) return;
@@ -1285,6 +1380,7 @@
     player.shield.visible = false; player.aura.visible = false;
     if (player.paint.transparent) { player.paint.transparent = false; player.paint.opacity = 1; player.paint.needsUpdate = true; }
     document.body.classList.remove('slow');
+    $('passed').classList.remove('dbl');
     jumpY = 0;
   }
 
@@ -1327,6 +1423,9 @@
   $('start').addEventListener('click', start);
   $('prev').addEventListener('click', function () { select(sel - 1); });
   $('next').addEventListener('click', function () { select(sel + 1); });
+  $('lvl-down').addEventListener('click', function () { stepLvl(-1); });
+  $('lvl-up').addEventListener('click', function () { stepLvl(1); });
+  window.addEventListener('pagehide', persist);
   document.addEventListener('visibilitychange', function () { if (document.hidden) persist(); });
 
   /* ---------- Kamera ---------- */
@@ -1355,7 +1454,7 @@
       var c = traffic[i];
       if (!c.active) continue;
       /* Spurwechsel: erst blinken, dann rüberziehen */
-      if (c.chg === 0 && !c.truck && level >= 2 && c.x > 25 && c.x < 220 &&
+      if (c.chg === 0 && c.blinkL && level >= 2 && c.x > 25 && c.x < 220 &&
           Math.random() < Math.min(0.1, 0.02 + level * 0.006) * dtW) {
         var dir = Math.random() < 0.5 ? -1 : 1, to = c.lane + dir;
         var nearPlayer = Math.abs(c.x) < 14 && Math.abs(pz - LANES[to]) < 2.6;
@@ -1390,13 +1489,13 @@
         if (c.x < -36) {
           if (i < activeTarget()) place(c, 160 + Math.random() * Math.max(50, 130 - level * 5)); else park(c);
         }
-        if (c.active && Math.abs(c.x) < c.hl + 2.05 && Math.abs(pz - c.z) < c.hw + 0.78 && jumpY < 1.0) {
+        if (c.active && Math.abs(c.x) < c.hl + 2.05 * miniS && Math.abs(pz - c.z) < c.hw + 0.78 * miniS && jumpY < 1.0) {
           var id = sk.active ? D.skill.id : '';
           if (id === 'shield') {
             burst(c.x * 0.5, 0.8, (pz + c.z) / 2, sparkCyan, 14);
             shake = 0.25; countPass();
             place(c, 170 + Math.random() * 80);
-          } else if (id !== 'ghost') {
+          } else if (id !== 'ghost' && id !== 'dash') {
             crash(c.x * 0.5, (pz + c.z) / 2);
           }
         }
@@ -1469,6 +1568,8 @@
     var pitch = boost * 0.012;
     if (jumpY > 0 && D.skill) pitch += (0.5 - sk.t / D.skill.dur) * 0.22;
     g.rotation.z = pitch;
+    miniS += ((sk.active && D.skill.id === 'mini' ? 0.5 : 1) - miniS) * Math.min(1, dt * 8);
+    g.scale.setScalar(miniS);
     player.floorG.position.y = -jumpY;
     player.floorG.rotation.z = -pitch;
     for (var p = 0; p < 4; p++) player.wheels[p].rotation.z -= v * dtW / 0.34;
