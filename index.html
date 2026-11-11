@@ -59,23 +59,23 @@
   }
   .hud { top: 0; padding-top: 14px; align-items: flex-start; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6); }
   .speed { font-family: var(--display); font-weight: 700; line-height: 0.9; font-variant-numeric: tabular-nums; }
-  .speed b { font-size: clamp(52px, 15vw, 92px); color: var(--accent); }
-  .speed span { font-size: 18px; color: var(--muted); letter-spacing: 0.06em; margin-left: 4px; }
-  .meter { margin-top: 8px; width: min(190px, 46vw); --c: var(--nitro); }
+  .speed b { font-size: clamp(32px, 8.5vw, 50px); color: var(--accent); }
+  .speed span { font-size: 13px; color: var(--muted); letter-spacing: 0.06em; margin-left: 4px; }
+  .meter { margin-top: 6px; width: min(140px, 36vw); --c: var(--nitro); }
   .meter.skill { --c: var(--skill); }
-  .meter label { display: block; font: 700 13px var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--c); }
-  .meter div { margin-top: 3px; height: 9px; border-radius: 6px; background: rgba(255, 255, 255, 0.14); overflow: hidden; transform: skewX(-18deg); }
+  .meter label { display: block; font: 700 11px var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--c); }
+  .meter div { margin-top: 2px; height: 7px; border-radius: 6px; background: rgba(255, 255, 255, 0.14); overflow: hidden; transform: skewX(-18deg); }
   .meter i { display: block; height: 100%; width: 100%; background: var(--c); box-shadow: 0 0 14px var(--c); }
   .meter.empty { --c: var(--muted); }
   .meter.empty i { box-shadow: none; }
-  .count { text-align: right; font-family: var(--display); font-weight: 500; font-size: 18px; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
-  .count b { font-size: 38px; font-weight: 700; display: block; line-height: 1; }
+  .count { text-align: right; font-family: var(--display); font-weight: 500; font-size: 13px; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
+  .count b { font-size: 26px; font-weight: 700; display: block; line-height: 1; }
   .count b.dbl { color: var(--skill); }
-  .count small { color: var(--accent); font-size: 16px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+  .count small { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
 
   .toast {
-    position: absolute; left: 0; right: 0; top: 40%; text-align: center; pointer-events: none;
-    font: 700 clamp(40px, 12vw, 72px) var(--display); letter-spacing: 0.06em; text-transform: uppercase; line-height: 1;
+    position: absolute; left: 0; right: 0; top: 21%; text-align: center; pointer-events: none;
+    font: 700 clamp(22px, 6vw, 36px) var(--display); letter-spacing: 0.06em; text-transform: uppercase; line-height: 1;
     color: var(--accent); text-shadow: 0 0 30px rgba(255, 178, 62, 0.6); opacity: 0;
   }
   .toast small { display: block; margin-top: 6px; font-size: 0.42em; letter-spacing: 0.2em; color: var(--fg); }
@@ -89,7 +89,7 @@
   .pad .steer { flex: 0 0 auto; pointer-events: auto; }
   .key {
     flex: 1 1 0; min-width: 0; height: clamp(70px, calc(12vmin + 24px), 116px); padding: 0 2px; overflow: hidden;
-    font: 700 clamp(17px, 5vw, 26px) var(--display); letter-spacing: 0.03em; text-transform: uppercase;
+    font: 700 clamp(15px, 4.4vw, 26px) var(--display); letter-spacing: 0.02em; text-transform: uppercase;
     color: var(--fg);
     background: var(--panel);
     border: 2px solid var(--line); border-radius: 20px;
@@ -178,49 +178,66 @@
   .opt { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
   .opt button { height: 40px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--fg); font: 700 17px var(--display); letter-spacing: 0.04em; text-transform: uppercase; cursor: pointer; }
   /* ---------- Belohnungen und Effekte ---------- */
-  .count .pts { display: block; margin-top: 2px; font-size: 15px; color: var(--muted); letter-spacing: 0.06em; }
-  .count .pts b { display: inline; font-size: 22px; color: var(--fg); }
-  .next { margin-top: 6px; margin-left: auto; width: min(160px, 36vw); }
-  .next div { height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.18); overflow: hidden; }
+  .count .pts { display: block; margin-top: 1px; font-size: 11px; color: var(--muted); letter-spacing: 0.06em; }
+  .count .pts b { display: inline; font-size: 15px; color: var(--fg); }
+  .next { margin-top: 5px; margin-left: auto; width: max-content; max-width: 62vw; }
+  .next div { width: min(120px, 30vw); margin-left: auto; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.18); overflow: hidden; }
   .next i { display: block; height: 100%; width: 0; background: var(--skill); }
-  .next span { display: block; margin-top: 3px; font: 500 12px var(--display); letter-spacing: 0.06em; color: var(--muted); text-transform: uppercase; }
-  .combo {
-    position: fixed; left: 0; width: var(--vw, 100%); top: calc(var(--vvt, 0px) + var(--vvh, 100vh) * 0.26); text-align: center; pointer-events: none;
-    font-family: var(--display); font-weight: 700; text-transform: uppercase; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.7);
-  }
-  .combo b { display: block; font-size: clamp(36px, 10vw, 64px); line-height: 0.95; color: var(--accent); }
+  .next span { display: block; margin-top: 3px; font: 500 10.5px var(--display); letter-spacing: 0.06em; color: var(--muted); text-transform: uppercase; white-space: nowrap; }
+  .combo { margin-top: 5px; text-align: right; font-family: var(--display); font-weight: 700; text-transform: uppercase; }
+  .combo b { display: inline-block; font-size: 19px; line-height: 1; color: var(--accent); }
   .combo.bump b { animation: bump 0.25s ease-out; }
-  .combo span { font-size: 14px; letter-spacing: 0.16em; color: var(--fg); }
-  .combo div { margin: 6px auto 0; width: 120px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.2); overflow: hidden; }
+  .combo span { font-size: 11px; letter-spacing: 0.12em; color: var(--fg); }
+  .combo div { margin: 3px 0 0 auto; width: 84px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.2); overflow: hidden; }
   .combo i { display: block; height: 100%; background: var(--accent); }
-  @keyframes bump { 0% { transform: scale(1.6); } 100% { transform: scale(1); } }
-  .pops { position: fixed; left: 0; width: var(--vw, 100%); top: calc(var(--vvt, 0px) + var(--vvh, 100vh) * 0.5); height: 0; pointer-events: none; }
+  @keyframes bump { 0% { transform: scale(1.5); } 100% { transform: scale(1); } }
+  /* Kleine Meldungen am rechten Rand, damit die Straße frei bleibt */
+  .pops { position: fixed; left: 0; width: var(--vw, 100%); top: calc(var(--vvt, 0px) + 172px); pointer-events: none;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 2px; box-sizing: border-box; padding-right: 16px; }
   .pop {
-    position: absolute; left: 50%; white-space: nowrap;
-    font: 700 clamp(20px, 5.5vw, 30px) var(--display); letter-spacing: 0.05em; text-transform: uppercase;
-    color: var(--fg); text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8); animation: rise 0.9s ease-out forwards;
+    white-space: nowrap;
+    font: 700 clamp(13px, 3.4vw, 18px) var(--display); letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--fg); text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8); animation: rise 0.9s ease-out forwards;
   }
   .pop.gold { color: var(--accent); }
   .pop.cyan { color: var(--nitro); }
-  .pop.big { font-size: clamp(26px, 7.5vw, 42px); }
+  .pop.red { color: var(--danger); }
+  .pop.big { font-size: clamp(15px, 4vw, 21px); }
   @keyframes rise {
-    0% { opacity: 0; transform: translate(-50%, 12px) scale(0.6); }
-    15% { opacity: 1; transform: translate(-50%, 0) scale(1.15); }
-    100% { opacity: 0; transform: translate(-50%, -90px) scale(1); }
+    0% { opacity: 0; transform: translateY(8px); }
+    15% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-34px); }
   }
   .flash { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; opacity: 0; background: #ffffff; }
   .flash.red { background: #ff3a20; }
-  .flash.go { animation: flash 0.5s ease-out; }
-  @keyframes flash { 0% { opacity: 0.5; } 100% { opacity: 0; } }
+  .flash.fx { animation: flash 0.5s ease-out; }
+  .flash.hit.fx { animation: flashhit 0.7s ease-out; }
+  @keyframes flash { 0% { opacity: 0.2; } 100% { opacity: 0; } }
+  @keyframes flashhit { 0% { opacity: 0.55; } 100% { opacity: 0; } }
+  /* Benommen nach einem Treffer */
+  .daze { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; opacity: 0;
+    background: radial-gradient(ellipse at 50% 55%, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.94) 72%); }
+  .daze.fx { animation: daze 1.5s ease-out; }
+  @keyframes daze { 0% { opacity: 0; } 14% { opacity: 1; } 55% { opacity: 0.7; } 100% { opacity: 0; } }
+  #stage { transition: filter 0.9s ease-out; }
+  body.dazed #stage { filter: blur(5px) brightness(1.2); transition: none; }
+  .meter.dmgm { --c: #6fe08a; }
+  .meter .dmg { height: auto; background: none; transform: none; overflow: visible; display: flex; gap: 4px; }
+  .meter .dmg i { flex: 0 0 18px; width: 18px; height: 6px; border-radius: 3px; background: #6fe08a; box-shadow: none; }
+  .meter .dmg i.off { background: var(--danger); }
+  .klist { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .klist button { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 0 12px; font-size: 16px; }
+  .klist button b { color: var(--accent); }
+  .klist button.wait { border-color: var(--accent); }
   .rush {
     position: fixed; top: var(--vvt, 0px); left: 0; width: var(--vw, 100%); height: var(--vvh, 100%); pointer-events: none; opacity: 0;
     background:
       repeating-conic-gradient(from 0deg at 50% 50%, rgba(255,255,255,0) 0deg 6deg, rgba(255,255,255,0.55) 6.3deg, rgba(255,255,255,0) 6.8deg 13deg),
       repeating-conic-gradient(from 3deg at 50% 50%, rgba(160,230,255,0) 0deg 4deg, rgba(160,230,255,0.4) 4.2deg, rgba(160,230,255,0) 4.5deg 7deg);
-    -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 17%, #000 46%);
-    mask-image: radial-gradient(circle at 50% 50%, transparent 17%, #000 46%);
+    -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 28%, #000 52%);
+    mask-image: radial-gradient(circle at 50% 50%, transparent 28%, #000 52%);
   }
-  @media (prefers-reduced-motion: reduce) { .rush, .flash { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .rush, .flash { display: none; } body.dazed #stage { filter: none; } }
   /* Tasten selbst anordnen */
   .pad.swap { flex-direction: row-reverse; }
   .pad.free { transform: none; top: var(--vvt, 0px); height: 0; padding: 0; }
@@ -268,14 +285,15 @@
   <div>
     <div class="speed"><b id="kmh">0</b><span>km/h</span></div>
     <div id="nitro" class="meter"><label>Nitro</label><div><i id="nitro-fill"></i></div></div>
+    <div class="meter dmgm"><label>Zustand</label><div id="dmg" class="dmg"><i></i><i></i><i></i></div></div>
     <div id="skillbar" class="meter skill"><label id="skill-label">Sprung</label><div><i id="skill-fill"></i></div></div>
   </div>
-  <div class="count"><b id="passed">0</b>überholt<br><small id="level">Stufe 1</small><span class="pts"><b id="score">0</b> Punkte</span><div id="next" class="next" hidden><div><i id="next-fill"></i></div><span id="next-text"></span></div></div>
+  <div class="count"><b id="passed">0</b>überholt<br><small id="level">Stufe 1</small><span class="pts"><b id="score">0</b> Punkte</span><div id="next" class="next" hidden><div><i id="next-fill"></i></div><span id="next-text"></span></div><div id="combo" class="combo" hidden><span>Serie</span> <b id="combo-x">2</b> <span id="combo-label"></span><div><i id="combo-fill"></i></div></div></div>
 </div>
 <div id="toast" class="toast"></div>
-<div id="combo" class="combo" hidden><b id="combo-x">2</b><span id="combo-label">Serie</span><div><i id="combo-fill"></i></div></div>
 <div id="pops" class="pops"></div>
 <div id="flash" class="flash"></div>
+<div id="daze" class="daze"></div>
 
 <div id="pad" class="pad" hidden>
   <div id="g-pedals" class="col">
@@ -314,11 +332,12 @@
         <dt>Nitro</dt><dd><i id="st-nitro"></i></dd>
       </dl>
       <div id="lock" class="lock" hidden><div><i id="lock-fill"></i></div><span id="lock-text"></span></div>
+      <div class="opt"><span>Tastatur belegen</span><button id="keys-open" type="button">Ändern</button></div>
       <div class="opt"><span>Ton und Vibration</span><button id="snd" type="button">An</button></div>
       <div class="opt"><span>Lenken und Gas tauschen</span><button id="swap" type="button">Normal</button></div>
       <div class="opt"><span>Tasten selbst anordnen</span><button id="arrange" type="button">Anordnen</button></div>
       <div class="opt"><span>Lage der Tasten im Rennen</span><button id="lift" type="button">Unten</button></div>
-      <p class="help">Tastatur: Pfeile lenken, Gas und Bremse · Shift = Nitro · Leertaste = Fähigkeit</p>
+      <p id="keys-help" class="help"></p>
     </div>
     <div class="s-foot">
       <div class="picker">
@@ -340,6 +359,13 @@
   <div>
     <p><b>Einmal tippen:</b> Gruppe lässt sich verschieben. <b>Zweimal tippen:</b> Gruppe ist fest.</p>
     <div class="btns"><button id="arr-reset" type="button">Zurücksetzen</button><button id="arr-done" class="main" type="button">Fertig</button></div>
+  </div>
+</div>
+<div id="keys" class="editbar" hidden>
+  <div>
+    <p>Tippe auf eine Aktion und drücke dann die Taste, die du dafür haben willst. <b>Esc</b> bricht ab.</p>
+    <div id="keys-list" class="klist"></div>
+    <div class="btns"><button id="keys-reset" type="button">Standard</button><button id="keys-done" class="main" type="button">Fertig</button></div>
   </div>
 </div>
 <div id="err" class="err" hidden></div>
@@ -1205,7 +1231,7 @@
       color: D.color, metalness: D.chrome ? 1 : 0.5, roughness: D.chrome ? 0.1 : 0.26 - D.tier * 0.02,
       clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 0.85 + D.tier * 0.12
     });
-    var neon = new THREE.MeshBasicMaterial({ color: D.accent });
+    var neon = new THREE.MeshBasicMaterial({ color: D.accent }), parts = [];
     var trailMat = decalMat(beamTex, 0xff2a12, 0, true);
     car.add(new THREE.Mesh(geos.body, paint));
     car.add(new THREE.Mesh(geos.cab, glass));
@@ -1221,7 +1247,7 @@
     wheelRim.rotation.y = Math.PI / 2; wheelRim.position.set(P.cabF - 0.56, P.hood + 0.12, -0.3); car.add(wheelRim);
 
     addBox(car, 3.4, 0.3, 1.32, 0, 0.35, 0, dark);
-    addBox(car, 0.34, 0.03, P.w - 0.16, 2.14, 0.2, 0, dark);
+    parts.push(addBox(car, 0.34, 0.03, P.w - 0.16, 2.14, 0.2, 0, dark));
     addBox(car, 0.06, 0.1, 1.0, 2.3, P.nose - 0.11, 0, dark);
     addBox(car, 0.3, 0.2, 1.3, -2.2, 0.36, 0, dark);
     addBox(car, 0.03, 0.11, 0.42, -2.34, 0.52, 0, plateMat);
@@ -1234,7 +1260,7 @@
       addBox(car, 0.012, 0.36, 0.012, P.cabF - 0.12, 0.52, s * (side - 0.005), dark);
       addBox(car, 0.012, 0.36, 0.012, Math.max(-0.85, P.cabR + 0.3), 0.52, s * (side - 0.005), dark);
       addBox(car, 0.13, 0.025, 0.02, Math.max(-0.7, P.cabR + 0.48), 0.62, s * side, metal);
-      addBox(car, 0.16, 0.08, 0.2, P.cabF - 0.22, P.hood + 0.1, s * (side - 0.06), paint);
+      parts.push(addBox(car, 0.16, 0.08, 0.2, P.cabF - 0.22, P.hood + 0.1, s * (side - 0.06), paint));
       addBox(car, 0.06, 0.045, 0.4, 2.3, P.nose + 0.02, s * 0.56, headMat).rotation.y = s * -0.25;
       addBox(car, 0.04, 0.014, 0.46, 2.3, P.nose - 0.03, s * 0.56, headMat).rotation.y = s * -0.25;
       addBox(car, 0.06, 0.05, 0.46, -2.3, tailY, s * 0.56, tailMat).rotation.y = s * 0.2;
@@ -1250,7 +1276,7 @@
       trail.rotation.x = -Math.PI / 2; trail.scale.set(-7, 0.34, 1); trail.position.set(-5.8, tailY, s * 0.56);
       trail.userData.noShadow = true; car.add(trail);
     });
-    if (D.tier >= 1) addBox(car, D.tier >= 3 ? 0.5 : 0.36, 0.03, D.tier >= 3 ? P.w : P.w - 0.16, -1.95, wingY, 0, paint);
+    if (D.tier >= 1) parts.push(addBox(car, D.tier >= 3 ? 0.5 : 0.36, 0.03, D.tier >= 3 ? P.w : P.w - 0.16, -1.95, wingY, 0, paint));
     if (D.tier >= 3) addBox(car, 0.5, 0.1, 0.34, (P.roofF + P.roofR) / 2 - 0.15, P.roof + 0.11, 0, dark);
     [[FX, wz], [FX, -wz], [RX, wz], [RX, -wz]].forEach(function (p) { heroWheel(car, p[0], WY, p[1], wheels, D.tier >= 3 ? neon : null); });
     car.traverse(function (o) { if (o.isMesh && !o.userData.noShadow) o.castShadow = true; });
@@ -1276,7 +1302,7 @@
 
     car.position.y = 0.04;
     scene.add(car);
-    return { group: car, wheels: wheels, paint: paint, trailMat: trailMat, floorG: floorG, beam: beam, under: under,
+    return { group: car, wheels: wheels, paint: paint, trailMat: trailMat, parts: parts, floorG: floorG, beam: beam, under: under,
              flames: flames, flameMat: flameMat, shield: shield, aura: aura, def: D };
   }
   function disposeCar(obj) {
@@ -1361,7 +1387,8 @@
     unlock: function () { [523, 659, 784, 1047, 1319, 1568].forEach(function (f, i) { tone(f, 0.3, 'square', 0.09, i * 0.1); }); },
     crash: function () { noise(0.9, 0.7, 2500); tone(140, 0.6, 'sawtooth', 0.3, 0, 40); },
     skill: function () { tone(300, 0.35, 'sawtooth', 0.12, 0, 1200); },
-    combo: function () { tone(784, 0.1, 'square', 0.09); tone(1175, 0.2, 'square', 0.09, 0.08); }
+    combo: function () { tone(784, 0.1, 'square', 0.09); tone(1175, 0.2, 'square', 0.09, 0.08); },
+    hit: function () { noise(0.4, 0.6, 1800); tone(90, 0.3, 'sine', 0.4, 0, 45); tone(3200, 1.2, 'sine', 0.035); }
   };
   function buzz(ms) { try { if (audioOn() && navigator.vibrate) navigator.vibrate(ms); } catch (e) {} }
   function engineSound() {
@@ -1379,12 +1406,11 @@
   function pop(text, cls) {
     var box = $('pops'), el = document.createElement('div');
     el.className = 'pop ' + (cls || ''); el.textContent = text;
-    el.style.marginLeft = Math.round(rnd(-70, 70)) + 'px'; el.style.top = Math.round(rnd(-24, 24)) + 'px';
     box.appendChild(el);
     setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 950);
-    while (box.children.length > 6) box.removeChild(box.firstChild);
+    while (box.children.length > 3) box.removeChild(box.firstChild);
   }
-  function flash(red) { var f = $('flash'); f.className = 'flash' + (red ? ' red' : ''); void f.offsetWidth; f.className += ' go'; }
+  function flash(kind) { var f = $('flash'); f.className = 'flash' + (kind === 'hit' ? ' hit' : kind ? ' red' : ''); void f.offsetWidth; f.className += ' fx'; }
 
   /* ---------- Nitro-Kristalle zum Einsammeln ---------- */
   var gems = [];
@@ -1405,6 +1431,74 @@
   }
   function resetGems() { gems.forEach(function (o, i) { o.x = 90 + i * 85 + rnd(0, 30); o.z = LANES[Math.floor(Math.random() * 5)]; o.g.visible = true; }); }
   function hideGems() { gems.forEach(function (o) { o.x = 9999; o.g.visible = false; }); }
+
+  /* ---------- Schaden: Trümmer und Rauch ---------- */
+  var debris = [], debrisGeo = new THREE.BoxGeometry(0.34, 0.08, 0.24);
+  for (var db0 = 0; db0 < 14; db0++) {
+    var dbm = new THREE.Mesh(debrisGeo, dark); dbm.visible = false; scene.add(dbm);
+    debris.push({ m: dbm, life: 0, vx: 0, vy: 0, vz: 0, y: 0 });
+  }
+  function throwDebris(x, z, side, n) {
+    var used = 0;
+    for (var i = 0; i < debris.length && used < n; i++) {
+      var p = debris[i];
+      if (p.life > 0) continue;
+      p.m.material = used % 3 === 2 ? dark : player.paint;
+      p.y = rnd(0.4, 0.9);
+      p.m.position.set(x + rnd(-0.6, 0.6), p.y, z + rnd(-0.3, 0.3));
+      p.m.scale.set(rnd(0.6, 1.6), 1, rnd(0.6, 1.6));
+      p.vx = -rnd(4, 12); p.vy = rnd(3, 7.5); p.vz = side * rnd(1, 6) + rnd(-2, 2);
+      p.m.visible = true; p.life = rnd(1.0, 1.6); used++;
+    }
+  }
+  var smokeMat = new THREE.SpriteMaterial({ map: glowTex, color: 0x555963, transparent: true, opacity: 0.5, depthWrite: false });
+  var smoke = [], smokeAcc = 0;
+  for (var sm0 = 0; sm0 < 26; sm0++) {
+    var sms = new THREE.Sprite(smokeMat); sms.visible = false; scene.add(sms);
+    smoke.push({ s: sms, life: 0, max: 1, vx: 0, vy: 0, vz: 0 });
+  }
+  function puff(x, y, z) {
+    for (var i = 0; i < smoke.length; i++) {
+      var p = smoke[i];
+      if (p.life > 0) continue;
+      p.s.position.set(x, y, z); p.s.visible = true;
+      p.vx = -rnd(2, 5); p.vy = rnd(1.2, 2.6); p.vz = rnd(-0.6, 0.6);
+      p.life = p.max = rnd(0.9, 1.5);
+      return;
+    }
+  }
+  var dazeTimer = 0;
+  function daze() {
+    var d = $('daze'); d.classList.remove('fx'); void d.offsetWidth; d.classList.add('fx');
+    document.body.classList.add('dazed');
+    clearTimeout(dazeTimer);
+    dazeTimer = setTimeout(function () { document.body.classList.remove('dazed'); }, 500);
+  }
+  function showDamage() {
+    var pips = $('dmg').children;
+    for (var i = 0; i < pips.length; i++) pips[i].className = i < 3 - damage ? '' : 'off';
+  }
+  /* Leichte Berührung: Teile fliegen weg, kurz benommen. Der dritte Treffer oder ein voller Aufprall ist ein Crash. */
+  function graze(c, depth) {
+    var side = pz >= c.z ? 1 : -1, cx = c.x * 0.5, cz = (pz + c.z) / 2;
+    damage++;
+    showDamage();
+    if (damage >= 3) { crash(cx, cz); return; }
+    hitT = 1.5; dazeT = 0.9; shake = 0.45; combo = 0; showCombo(false);
+    if (depth >= 0.6) v = Math.max(0, c.v - 5);
+    else { v *= 0.8; pz += side * (depth + 0.2); vz = side * 5; }
+    var lim = HALF - 1.05;
+    pz = Math.max(-lim, Math.min(lim, pz));
+    burst(cx, 0.7, cz, sparkOrange, 12);
+    throwDebris(cx * 0.6, pz, side, 6);
+    var gone = 0;
+    for (var i = 0; i < player.parts.length && gone < 2; i++) {
+      if (player.parts[i].visible) { player.parts[i].visible = false; gone++; }
+    }
+    for (var k = 0; k < 6; k++) puff(rnd(0.5, 2), rnd(0.6, 1.1), pz + rnd(-0.6, 0.6));
+    SFX.hit(); buzz(90); flash('hit'); daze();
+    pop(damage === 2 ? 'Noch ein Treffer = Crash' : 'Schaden', 'red big');
+  }
 
   /* ---------- Feuerwerk ---------- */
   var fw = [], fwMats = [glowMat(0xffc040, 1), glowMat(0xff5ad0, 1), glowMat(0x4fd8ff, 1), glowMat(0x9dff4a, 1)];
@@ -1436,13 +1530,19 @@
   }
 
   /* ---------- Spielstand ---------- */
+  var DEF_KEYS = { left: 'ArrowLeft', right: 'ArrowRight', gas: 'ArrowUp', brake: 'ArrowDown', nitro: 'Shift', skill: ' ' };
   var ALL_OPEN = false;
   var save = { total: 0, best: 0, car: 0, maxLevel: 1, startLevel: 1, lift: 0, bestScore: 0, snd: true };
   try {
     var rawSave = JSON.parse(localStorage.getItem('nachtfalke-save') || 'null');
     if (rawSave) { save.total = rawSave.total | 0; save.best = rawSave.best | 0; save.car = rawSave.car | 0; save.maxLevel = (rawSave.maxLevel | 0) || 1; save.startLevel = (rawSave.startLevel | 0) || 1; save.lift = (rawSave.lift | 0) % 3;
       if (rawSave.pos && rawSave.pos.pedals && rawSave.pos.steer) save.pos = rawSave.pos;
-      save.swap = !!rawSave.swap; save.bestScore = rawSave.bestScore | 0; save.snd = rawSave.snd !== false; }
+      save.swap = !!rawSave.swap; save.bestScore = rawSave.bestScore | 0; save.snd = rawSave.snd !== false;
+      if (rawSave.keys && typeof rawSave.keys === 'object') {
+        var keysOk = true;
+        for (var ka in DEF_KEYS) if (typeof rawSave.keys[ka] !== 'string') keysOk = false;
+        if (keysOk) save.keys = rawSave.keys;
+      } }
     else { save.best = parseInt(localStorage.getItem('nachtfalke-best') || '0', 10) || 0; }
   } catch (e) {}
   function persist() { try { localStorage.setItem('nachtfalke-save', JSON.stringify(save)); } catch (e) {} }
@@ -1556,6 +1656,39 @@
   }
   showSwap();
   $('swap').addEventListener('click', function () { save.swap = !save.swap; persist(); showSwap(); });
+  /* ---------- Tastatur belegen ---------- */
+  var ACTIONS = [['left', 'Links'], ['right', 'Rechts'], ['gas', 'Gas'], ['brake', 'Bremse'], ['nitro', 'Nitro'], ['skill', 'Fähigkeit']];
+  var KEY_LABELS = { ' ': 'Leertaste', ArrowLeft: '←', ArrowRight: '→', ArrowUp: '↑', ArrowDown: '↓', Control: 'Strg', Backspace: 'Rücktaste' };
+  var keysOpen = false, capture = null;
+  function keyLabel(k) { return KEY_LABELS[k] || (k.length === 1 ? k.toUpperCase() : k); }
+  function curKeys() { return save.keys || DEF_KEYS; }
+  function renderKeys() {
+    var box = $('keys-list'), km = curKeys();
+    box.textContent = '';
+    ACTIONS.forEach(function (a) {
+      var b = document.createElement('button'), s1 = document.createElement('span'), s2 = document.createElement('b');
+      b.type = 'button'; b.id = 'key-' + a[0];
+      s1.textContent = a[1]; s2.textContent = capture === a[0] ? 'Taste drücken' : keyLabel(km[a[0]]);
+      if (capture === a[0]) b.className = 'wait';
+      b.appendChild(s1); b.appendChild(s2);
+      b.addEventListener('click', function () { capture = a[0]; renderKeys(); });
+      box.appendChild(b);
+    });
+    $('keys-help').textContent = 'Tastatur: ' + keyLabel(km.left) + ' ' + keyLabel(km.right) + ' lenken · ' + keyLabel(km.gas) + ' Gas · ' +
+      keyLabel(km.brake) + ' Bremse · ' + keyLabel(km.nitro) + ' Nitro · ' + keyLabel(km.skill) + ' Fähigkeit';
+  }
+  function assignKey(k) {
+    var km = {}, cur = curKeys(), a;
+    for (a in DEF_KEYS) km[a] = cur[a];
+    for (a in km) if (km[a] === k && a !== capture) km[a] = km[capture];
+    km[capture] = k; save.keys = km; capture = null; persist();
+  }
+  function closeKeys() { keysOpen = false; capture = null; $('keys').hidden = true; }
+  renderKeys();
+  $('keys-open').addEventListener('click', function () { keysOpen = true; capture = null; $('keys').hidden = false; renderKeys(); });
+  $('keys-done').addEventListener('click', closeKeys);
+  $('keys-reset').addEventListener('click', function () { delete save.keys; capture = null; persist(); renderKeys(); });
+
   function showSnd() { $('snd').textContent = save.snd ? 'An' : 'Aus'; }
   showSnd();
   $('snd').addEventListener('click', function () { save.snd = !save.snd; persist(); showSnd(); if (save.snd) { initAudio(); SFX.pick(); } });
@@ -1573,7 +1706,7 @@
   var v = 14, pz = 0, vz = 0, passed = 0, level = 1, runStart = 1, shake = 0, overT = 0, totalAtStart = 0, startBiome = 0, miniS = 1;
   var nitro = 1, depleted = false, cool = 0, boost = 0, time = 0, ws = 1, jumpY = 0, menuAngle = 0.9;
   var sk = { active: false, t: 0, cd: 0 };
-  var score = 0, combo = 0, comboT = 0, COMBO_TIME = 3.2, punch = 0, nextIdx = 0, newBest = false, rushOn = false;
+  var score = 0, combo = 0, comboT = 0, COMBO_TIME = 3.2, punch = 0, nextIdx = 0, newBest = false, rushOn = false, damage = 0, hitT = 0, dazeT = 0;
 
   /* ---------- Verkehr ---------- */
   function laneFree(c, z, x, margin) {
@@ -1663,6 +1796,7 @@
     pz = 0; vz = 0; v = 14; jumpY = 0; ws = 1; boost = 0;
     $('g-total').textContent = save.total; $('g-best').textContent = save.best; $('g-score').textContent = save.bestScore;
     combo = 0; showCombo(false); hideGems(); $('pops').textContent = '';
+    damage = 0; hitT = 0; dazeT = 0; document.body.classList.remove('dazed'); closeKeys();
     showLvl(); miniS = 1;
     var r = $('g-result');
     if (result) { r.innerHTML = result; r.hidden = false; } else { r.hidden = true; }
@@ -1678,6 +1812,8 @@
     nitro = 1; depleted = false; cool = 0; ws = 1; jumpY = 0;
     sk.active = false; sk.t = 0; sk.cd = 0;
     totalAtStart = save.total;
+    damage = 0; hitT = 0; dazeT = 0; showDamage(); closeKeys();
+    player.parts.forEach(function (m) { m.visible = true; });
     score = 0; combo = 0; comboT = 0; punch = 0; newBest = false; $('score').textContent = '0'; showCombo(false);
     nextIdx = 0; while (nextIdx < CARS.length && save.total >= CARS[nextIdx].need) nextIdx++;
     updateNext(); resetGems(); initAudio();
@@ -1717,7 +1853,7 @@
     var m = mult();
     el.hidden = false;
     $('combo-x').textContent = combo;
-    $('combo-label').textContent = m > 1 ? 'Serie · Punkte x' + m : 'Serie';
+    $('combo-label').textContent = m > 1 ? 'x' + m : '';
     if (bump) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
   }
   function updateNext() {
@@ -1746,6 +1882,10 @@
     if (lv > save.maxLevel) save.maxLevel = lv;
     if (lv !== level) {
       level = lv; pts += 100;
+      if (damage > 0) {
+        damage--; showDamage(); pop('Repariert', 'cyan');
+        for (var pi = 0; pi < player.parts.length; pi++) if (!player.parts[pi].visible) { player.parts[pi].visible = true; break; }
+      }
       $('level').textContent = 'Stufe ' + level;
       var nb = (startBiome + Math.floor((level - runStart) / 2)) % BIOMES.length;
       if (nb !== biome) { setBiome(nb, false); showToast(BIOMES[nb].name, 'Stufe ' + level); }
@@ -1810,7 +1950,13 @@
   var KEYS = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'gas', ArrowDown: 'brake',
                a: 'left', d: 'right', w: 'gas', s: 'brake', Shift: 'nitro', n: 'nitro' };
   var buttons = { left: $('k-left'), right: $('k-right'), gas: $('k-gas'), brake: $('k-brake'), nitro: $('k-nitro') };
-  function keyName(e) { return KEYS[e.key.length === 1 ? e.key.toLowerCase() : e.key]; }
+  function normKey(e) { return e.key.length === 1 ? e.key.toLowerCase() : e.key; }
+  var ALT_KEYS = { a: 'left', d: 'right', w: 'gas', s: 'brake', n: 'nitro', e: 'skill' };
+  function keyName(e) {
+    var k = normKey(e), km = save.keys || DEF_KEYS;
+    for (var a in km) if (km[a] === k) return a;
+    return save.keys ? undefined : ALT_KEYS[k];
+  }
   /* Drei Quellen (Tastatur, Finger, Maus) werden zusammengeführt, damit sie sich nicht gegenseitig loslassen */
   var src = { key: {}, touch: {}, mouse: {} };
   function setHeld(name, on, from) {
@@ -1822,6 +1968,16 @@
     Object.keys(held).forEach(function (n) { src.key[n] = src.touch[n] = src.mouse[n] = false; held[n] = false; buttons[n].classList.remove('on'); });
   }
   window.addEventListener('keydown', function (e) {
+    if (keysOpen) {
+      if (capture) {
+        e.preventDefault();
+        var ck = normKey(e);
+        if (ck === 'Escape') capture = null;
+        else if (ck !== 'Enter' && ck !== 'Tab' && ck !== 'Meta') assignKey(ck);
+        renderKeys();
+      }
+      return;
+    }
     if (state === 'edit') return;
     if (state === 'menu') {
       if (e.key === 'ArrowLeft') { select(sel - 1); e.preventDefault(); }
@@ -1829,13 +1985,13 @@
       else if (e.key === 'Enter') { start(); e.preventDefault(); }
       return;
     }
-    if (e.key === ' ' || e.key === 'e' || e.key === 'E') { e.preventDefault(); if (!e.repeat) useSkill(); return; }
     var name = keyName(e);
     if (!name) return;
     e.preventDefault();
+    if (name === 'skill') { if (!e.repeat) useSkill(); return; }
     setHeld(name, true);
   });
-  window.addEventListener('keyup', function (e) { var name = keyName(e); if (name) setHeld(name, false); });
+  window.addEventListener('keyup', function (e) { var name = keyName(e); if (name && name !== 'skill') setHeld(name, false); });
   window.addEventListener('blur', function () { clearHeld(); });
   /* Maus: Tasten direkt */
   Object.keys(buttons).forEach(function (name) {
@@ -1967,8 +2123,10 @@
             burst(c.x * 0.5, 0.8, (pz + c.z) / 2, sparkCyan, 14);
             shake = 0.25; countPass();
             place(c, 170 + Math.random() * 80);
-          } else if (!has('ghost') && !has('dash')) {
-            crash(c.x * 0.5, (pz + c.z) / 2);
+          } else if (!has('ghost') && !has('dash') && hitT <= 0) {
+            var depth = c.hw + 0.78 * miniS - Math.abs(pz - c.z);
+            if (depth < 0.6 || (c.x > 0 && v - c.v < 7)) graze(c, depth);
+            else crash(c.x * 0.5, (pz + c.z) / 2);
           }
         }
       }
@@ -1992,7 +2150,9 @@
     }
 
     var slowOn = has('slow');
-    ws += ((slowOn ? 0.4 : 1) - ws) * Math.min(1, dt * 6);
+    if (hitT > 0) hitT -= dt;
+    if (dazeT > 0) dazeT -= dt;
+    ws += ((slowOn ? 0.4 : dazeT > 0 ? 0.5 : 1) - ws) * Math.min(1, dt * 6);
     var dtW = dt * ws;
 
     var boosting = false;
@@ -2054,6 +2214,7 @@
     var g = player.group;
     g.position.z = pz;
     g.position.y = 0.04 + jumpY;
+    g.visible = !(state === 'run' && hitT > 0 && Math.floor(time * 14) % 2 === 1);
     g.rotation.y = -vz * 0.02;
     g.rotation.x = vz * 0.005;
     var pitch = boost * 0.012;
@@ -2171,7 +2332,29 @@
       fp.s.position.x += fp.vx * dt; fp.s.position.y += fp.vy * dt; fp.s.position.z += fp.vz * dt;
       var fsz = 0.5 + fp.life * 1.1; fp.s.scale.set(fsz, fsz, 1);
     }
-    var rushO = state === 'run' ? Math.max(0, Math.min(0.2, (v / D.top - 0.8) * 0.8)) + boost * 0.22 : 0;
+    if (state === 'run' && damage > 0) {
+      smokeAcc += dt * damage * 7;
+      while (smokeAcc > 1) { smokeAcc -= 1; puff(1.6 + rnd(-0.3, 0.3), 0.8, pz + rnd(-0.4, 0.4)); }
+    }
+    for (var si = 0; si < smoke.length; si++) {
+      var sp2 = smoke[si];
+      if (sp2.life <= 0) continue;
+      sp2.life -= dt;
+      if (sp2.life <= 0) { sp2.s.visible = false; continue; }
+      sp2.s.position.x += (sp2.vx - v * 0.25) * dt; sp2.s.position.y += sp2.vy * dt; sp2.s.position.z += sp2.vz * dt;
+      var sz2 = 0.6 + Math.sin(Math.PI * (1 - sp2.life / sp2.max)) * 2.2; sp2.s.scale.set(sz2, sz2, 1);
+    }
+    for (var di = 0; di < debris.length; di++) {
+      var dp = debris[di];
+      if (dp.life <= 0) continue;
+      dp.life -= dt;
+      if (dp.life <= 0) { dp.m.visible = false; continue; }
+      dp.vy -= 20 * dt; dp.y += dp.vy * dt;
+      if (dp.y < 0.06) { dp.y = 0.06; dp.vy = -dp.vy * 0.4; dp.vx *= 0.7; dp.vz *= 0.7; }
+      dp.m.position.x += (dp.vx - v * 0.3) * dt; dp.m.position.y = dp.y; dp.m.position.z += dp.vz * dt;
+      dp.m.rotation.x += dt * 9; dp.m.rotation.z += dt * 6;
+    }
+    var rushO = state === 'run' ? Math.max(0, Math.min(0.1, (v / D.top - 0.85) * 0.5)) + boost * 0.14 : 0;
     if (rushO > 0.01) {
       rushOn = true; elRush.style.opacity = rushO.toFixed(2);
       if (frames & 1) elRush.style.transform = 'rotate(' + Math.floor(Math.random() * 360) + 'deg) scale(2.2)';
