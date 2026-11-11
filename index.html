@@ -178,6 +178,7 @@
   .opt { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
   .opt button { height: 40px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--fg); font: 700 17px var(--display); letter-spacing: 0.04em; text-transform: uppercase; cursor: pointer; }
   /* Tasten selbst anordnen */
+  .pad.swap { flex-direction: row-reverse; }
   .pad.free { transform: none; top: var(--vvt, 0px); height: 0; padding: 0; }
   .editing .pad .key { pointer-events: none; }
   .editing .pad .col, .editing .pad .steer { touch-action: none; cursor: grab; }
@@ -265,6 +266,7 @@
         <dt>Nitro</dt><dd><i id="st-nitro"></i></dd>
       </dl>
       <div id="lock" class="lock" hidden><div><i id="lock-fill"></i></div><span id="lock-text"></span></div>
+      <div class="opt"><span>Lenken und Gas tauschen</span><button id="swap" type="button">Normal</button></div>
       <div class="opt"><span>Tasten selbst anordnen</span><button id="arrange" type="button">Anordnen</button></div>
       <div class="opt"><span>Lage der Tasten im Rennen</span><button id="lift" type="button">Unten</button></div>
       <p class="help">Tastatur: Pfeile lenken, Gas und Bremse · Shift = Nitro · Leertaste = Fähigkeit</p>
@@ -1272,7 +1274,8 @@
   try {
     var rawSave = JSON.parse(localStorage.getItem('nachtfalke-save') || 'null');
     if (rawSave) { save.total = rawSave.total | 0; save.best = rawSave.best | 0; save.car = rawSave.car | 0; save.maxLevel = (rawSave.maxLevel | 0) || 1; save.startLevel = (rawSave.startLevel | 0) || 1; save.lift = (rawSave.lift | 0) % 3;
-      if (rawSave.pos && rawSave.pos.pedals && rawSave.pos.steer) save.pos = rawSave.pos; }
+      if (rawSave.pos && rawSave.pos.pedals && rawSave.pos.steer) save.pos = rawSave.pos;
+      save.swap = !!rawSave.swap; }
     else { save.best = parseInt(localStorage.getItem('nachtfalke-best') || '0', 10) || 0; }
   } catch (e) {}
   function persist() { try { localStorage.setItem('nachtfalke-save', JSON.stringify(save)); } catch (e) {} }
@@ -1302,7 +1305,8 @@
       g.style.position = 'fixed';
       if (k === 'pedals') g.style.width = Math.round(Math.min(320, VIS.w * 0.42)) + 'px';
       var gw = g.offsetWidth, gh = g.offsetHeight;
-      var x = Math.max(6, Math.min(VIS.w - gw - 6, p[0] * VIS.w));
+      var px = save.swap ? VIS.w - gw - p[0] * VIS.w : p[0] * VIS.w;
+      var x = Math.max(6, Math.min(VIS.w - gw - 6, px));
       var y = Math.max(6, Math.min(VIS.h - gh - 6, p[1] * VIS.h));
       g.style.left = Math.round(x) + 'px';
       g.style.top = Math.round(VIS.t + y) + 'px';
@@ -1317,7 +1321,7 @@
     var pos = {};
     Object.keys(groups).forEach(function (k) {
       var r = groups[k].getBoundingClientRect();
-      pos[k] = [r.left / VIS.w, (r.top - VIS.t) / VIS.h];
+      pos[k] = [(save.swap ? VIS.w - r.right : r.left) / VIS.w, (r.top - VIS.t) / VIS.h];
     });
     save.pos = pos;
   }
@@ -1355,7 +1359,7 @@
       var gw = g.offsetWidth, gh = g.offsetHeight;
       var x = Math.max(6, Math.min(VIS.w - gw - 6, drag.ox + dx));
       var y = Math.max(6, Math.min(VIS.h - gh - 6, drag.oy + dy));
-      save.pos[k] = [x / VIS.w, y / VIS.h];
+      save.pos[k] = [(save.swap ? VIS.w - gw - x : x) / VIS.w, y / VIS.h];
       g.style.left = Math.round(x) + 'px'; g.style.top = Math.round(VIS.t + y) + 'px';
     });
     function up(e) {
@@ -1378,6 +1382,13 @@
     Object.keys(groups).forEach(function (k) { setLock(k, true); });
   });
 
+  function showSwap() {
+    $('pad').classList.toggle('swap', !!save.swap);
+    $('swap').textContent = save.swap ? 'Getauscht' : 'Normal';
+    applyPos();
+  }
+  showSwap();
+  $('swap').addEventListener('click', function () { save.swap = !save.swap; persist(); showSwap(); });
   function showLift() {
     rootEl.style.setProperty('--lift', LIFTS[save.lift] + 'px');
     $('lift').textContent = LIFT_NAMES[save.lift];
