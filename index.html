@@ -1228,7 +1228,7 @@
     { id: 'glide', name: 'Gleiter', short: 'Gleiter', desc: 'Hebt ab und gleitet lange über den Verkehr hinweg.', dur: 2.6, cool: 13 },
     { id: 'ghost', name: 'Phantom', short: 'Phantom', desc: 'Fährt kurz durch andere Fahrzeuge einfach hindurch.', dur: 2.2, cool: 13 },
     { id: 'teleport', name: 'Teleport', short: 'Teleport', desc: 'Springt sofort 70 Meter nach vorn. Alles dazwischen zählt als überholt.', dur: 0.4, cool: 14 },
-    { id: 'clear', name: 'Schockwelle', short: 'Welle', desc: 'Fegt alle Fahrzeuge auf deiner Spur vor dir weg.', dur: 0.4, cool: 14 },
+    { id: 'clear', name: 'Schockwelle', short: 'Welle', desc: 'Schleudert bis zu drei Fahrzeuge direkt vor dir von der Straße.', dur: 0.4, cool: 14 },
     { id: 'shield', name: 'Schild', short: 'Schild', desc: 'Schleudert Fahrzeuge weg, die du berührst. Zählt als überholt.', dur: 3.0, cool: 14 },
     { ids: ['shield', 'rocket'], name: 'Rammbock', short: 'Ramme', desc: 'Raketenschub mit Schild: Du rast durch den Verkehr und schleuderst alles weg.', dur: 2.6, cool: 16 }
   ];
@@ -1772,11 +1772,12 @@
       x += 8;
     }
     c.x = x; c.z = LANES[c.lane]; c.chg = 0;
+    c.fly = 0; c.group.rotation.set(0, 0, 0); c.group.position.y = 0.04;
     c.base = (LANE_SPEED[c.lane] + (Math.random() * 3 - 1.5) - (c.truck ? 1.5 : 0)) * (1 + level * 0.012);
     c.v = c.base; c.behind = false; c.active = true; c.group.visible = true;
     if (c.blinkL) { c.blinkL.visible = false; c.blinkR.visible = false; }
   }
-  function park(c) { c.active = false; c.x = 9999; c.group.visible = false; c.group.position.x = 9999; }
+  function park(c) { c.fly = 0; c.group.rotation.set(0, 0, 0); c.group.position.y = 0.04; c.active = false; c.x = 9999; c.group.visible = false; c.group.position.x = 9999; }
   function activeTarget() { return Math.min(traffic.length, 9 + level); }
   function resetTraffic() {
     traffic.forEach(park);
@@ -1982,14 +1983,16 @@
     }
     if (on('refill')) { nitro = 1; depleted = false; burst(-1, 0.8, pz, sparkCyan, 12); }
     if (on('clear')) {
-      shake = 0.25;
-      for (var i = 0; i < traffic.length; i++) {
-        var c = traffic[i];
-        if (c.active && c.x > 0 && c.x < 95 && Math.abs(c.z - pz) < c.hw + 1.1) {
-          burst(Math.min(c.x, 30), 0.8, c.z, sparkCyan, 4);
-          place(c, 210 + Math.random() * 80);
-        }
-      }
+      /* Schleudert höchstens die drei nächsten Fahrzeuge auf deiner Spur von der Straße */
+      shake = 0.25; noise(0.35, 0.4, 2200);
+      traffic.filter(function (c) { return c.active && !(c.fly > 0) && c.x > 0 && c.x < 55 && Math.abs(c.z - pz) < c.hw + 1.1; })
+        .sort(function (a, b) { return a.x - b.x; }).slice(0, 3)
+        .forEach(function (c) {
+          c.fly = 0.9; c.flyDir = c.z > 0.1 ? 1 : c.z < -0.1 ? -1 : (Math.random() < 0.5 ? 1 : -1);
+          c.chg = 0; if (c.blinkL) { c.blinkL.visible = false; c.blinkR.visible = false; }
+          burst(Math.min(c.x, 30), 0.8, c.z, sparkCyan, 5);
+          countPass(false);
+        });
     }
   }
   function endSkill(silent) {
@@ -2137,6 +2140,14 @@
     for (var i = 0; i < traffic.length; i++) {
       var c = traffic[i];
       if (!c.active) continue;
+      if (c.fly > 0) {
+        c.fly -= dtW;
+        if (c.fly <= 0) { if (i < activeTarget()) place(c, 170 + Math.random() * 80); else park(c); continue; }
+        c.x += (c.v * 0.5 - v) * dtW; c.z += c.flyDir * 13 * dtW;
+        c.group.position.set(c.x, 0.04 + Math.sin((1 - c.fly / 0.9) * Math.PI) * 1.3, c.z);
+        c.group.rotation.y += c.flyDir * 7 * dtW; c.group.rotation.x += 3 * dtW;
+        continue;
+      }
       /* Spurwechsel: erst blinken, dann rüberziehen */
       if (hornOn && c.chg === 0 && c.blinkL && c.x > 3 && c.x < 90 && Math.abs(c.z - pz) < 1.7) {
         var hd = c.z >= pz ? 1 : -1, ht = c.lane + hd;
