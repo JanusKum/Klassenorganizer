@@ -221,6 +221,20 @@
   @keyframes daze { 0% { opacity: 0; } 14% { opacity: 1; } 55% { opacity: 0.7; } 100% { opacity: 0; } }
   #stage { transition: filter 0.9s ease-out; }
   body.dazed #stage { filter: blur(5px) brightness(1.2); transition: none; }
+  .mega {
+    position: fixed; left: 0; width: var(--vw, 100%); top: calc(var(--vvt, 0px) + var(--vvh, 100vh) * 0.3); text-align: center; pointer-events: none; opacity: 0;
+    font: 700 clamp(34px, 11vw, 92px) var(--display); line-height: 0.95; letter-spacing: 0.04em; text-transform: uppercase; color: #ff2a1a;
+    text-shadow: 0 0 24px rgba(255, 42, 26, 0.9), 0 0 60px rgba(255, 42, 26, 0.6), 0 3px 0 #5a0a04;
+  }
+  .mega.fx { animation: mega 2.6s ease-out; }
+  @keyframes mega {
+    0% { opacity: 0; transform: scale(2.6) rotate(-6deg); }
+    10% { opacity: 1; transform: scale(1) rotate(-3deg); }
+    14% { transform: scale(1.08) rotate(2deg); }
+    18% { transform: scale(1) rotate(-2deg); }
+    80% { opacity: 1; transform: scale(1.04) rotate(-2deg); }
+    100% { opacity: 0; transform: scale(1.3) rotate(-2deg); }
+  }
   .meter.dmgm { --c: #6fe08a; }
   .meter .dmg { height: auto; background: none; transform: none; overflow: visible; display: flex; gap: 4px; }
   .meter .dmg i { flex: 0 0 18px; width: 18px; height: 6px; border-radius: 3px; background: #6fe08a; box-shadow: none; }
@@ -294,6 +308,7 @@
 <div id="pops" class="pops"></div>
 <div id="flash" class="flash"></div>
 <div id="daze" class="daze"></div>
+<div id="mega" class="mega">Radj impressed</div>
 
 <div id="pad" class="pad" hidden>
   <div id="g-pedals" class="col">
@@ -1142,6 +1157,32 @@
     scene.add(van);
     return { group: van, wheels: wheels, wr: 0.37, hl: 2.5, hw: 0.98, blinkL: bl[0], blinkR: bl[1] };
   }
+  /* Rampen-Laster: Wer genau von hinten auffährt, springt über ihn hinweg */
+  function buildRampTruck(color) {
+    var tr = new THREE.Group(), wheels = [];
+    var cabMat = new THREE.MeshPhysicalMaterial({ color: color, metalness: 0.4, roughness: 0.35, clearcoat: 1 });
+    var bedMat = new THREE.MeshStandardMaterial({ color: 0x3a3f4a, roughness: 0.6, metalness: 0.6 });
+    var edge = new THREE.MeshBasicMaterial({ color: 0xffd23e });
+    addBox(tr, 1.9, 2.1, 2.3, 4.25, 1.55, 0, cabMat);
+    addBox(tr, 0.06, 0.8, 2.0, 5.21, 1.95, 0, glass);
+    addBox(tr, 4.9, 0.14, 2.3, 0.85, 1.25, 0, bedMat);
+    addBox(tr, 8.2, 0.3, 1.0, 1.0, 0.6, 0, dark);
+    addBox(tr, 3.85, 0.12, 2.3, -3.4, 0.7, 0, bedMat).rotation.z = 0.3;
+    [-1, 1].forEach(function (s) {
+      addBox(tr, 3.85, 0.1, 0.1, -3.4, 0.78, s * 1.1, edge).rotation.z = 0.3;
+      addBox(tr, 4.9, 0.1, 0.1, 0.85, 1.36, s * 1.1, edge);
+      addGlow(tr, tailGlow, -5.25, 0.4, s * 1.0, 1.1);
+      addBox(tr, 0.05, 0.1, 0.3, 5.22, 0.75, s * 0.85, headMat);
+      [3.9, -0.6, -1.8].forEach(function (x) { simpleWheel(tr, x, 0.46, s * 1.05, 1.35, wheels); });
+    });
+    for (var a = 0; a < 3; a++) addBox(tr, 0.5, 0.02, 1.2, -4.6 + a * 1.1, 0.43 + a * 0.34, 0, edge).rotation.z = 0.3;
+    addDecal(tr, blobMat, 12.5, 3.8, 0, -0.02);
+    addDecal(tr, tailRefl, 6, 2.8, -7.2, -0.015);
+    addDecal(tr, headPool, 16, 6, 13.2, -0.012);
+    tr.position.y = 0.04; tr.visible = false;
+    scene.add(tr);
+    return { group: tr, wheels: wheels, wr: 0.46, hl: 5.2, hw: 1.2, truck: true, ramp: true };
+  }
   function buildTruck(color) {
     var tr = new THREE.Group(), wheels = [];
     var box = new THREE.MeshStandardMaterial({ color: 0xd9dde4, roughness: 0.45, metalness: 0.2 });
@@ -1170,39 +1211,35 @@
   }
 
   /* ---------- Die 20 Autos ---------- */
-  /* Von schwach nach stark. Jede Fähigkeit gehört zu zwei Autos, das zweite hat sie etwas stärker. */
+  /* Von schwach nach stark: Auto 3 bis 17 haben je eine eigene Fähigkeit, Auto 18 bis 20 Kombinationen */
   var SKILLS = [
-    { id: 'dash', name: 'Blitz', short: 'Blitz', desc: 'Wechselt sofort eine Spur in die Richtung, in die du lenkst.', dur: 0.25, cool: 4, from: 2 },
-    { id: 'jump', name: 'Sprung', short: 'Sprung', desc: 'Springt für einen Moment über den Verkehr hinweg.', dur: 0.95, cool: 9, from: 4 },
-    { id: 'refill', name: 'Nitroflut', short: 'Nitro+', desc: 'Füllt den Nitro-Tank sofort wieder auf.', dur: 0.3, cool: 16, from: 6 },
-    { id: 'mini', name: 'Schrumpfen', short: 'Mini', desc: 'Dein Auto wird kurz halb so groß und passt durch enge Lücken.', dur: 3.5, cool: 12, from: 8 },
-    { id: 'slow', name: 'Zeitlupe', short: 'Zeitlupe', desc: 'Alles um dich herum wird langsam, deine Lenkung bleibt schnell.', dur: 2.8, cool: 14, from: 10 },
-    { id: 'double', name: 'Doppelt', short: 'Doppelt', desc: 'Jede Überholung zählt für kurze Zeit doppelt.', dur: 6, cool: 16, from: 12 },
-    { id: 'ghost', name: 'Phantom', short: 'Phantom', desc: 'Fährt kurz durch andere Fahrzeuge einfach hindurch.', dur: 2.2, cool: 13, from: 14 },
-    { id: 'clear', name: 'Schockwelle', short: 'Welle', desc: 'Fegt alle Fahrzeuge auf deiner Spur vor dir weg.', dur: 0.4, cool: 14, from: 16 },
-    { id: 'shield', name: 'Schild', short: 'Schild', desc: 'Schleudert Fahrzeuge weg, die du berührst. Zählt als überholt.', dur: 3.0, cool: 14, from: 18 }
+    { id: 'dash', name: 'Blitz', short: 'Blitz', desc: 'Wechselt sofort eine Spur in die Richtung, in die du lenkst.', dur: 0.25, cool: 4 },
+    { id: 'jump', name: 'Sprung', short: 'Sprung', desc: 'Springt für einen Moment über den Verkehr hinweg.', dur: 0.95, cool: 9 },
+    { id: 'refill', name: 'Nitroflut', short: 'Nitro+', desc: 'Füllt den Nitro-Tank sofort wieder auf.', dur: 0.3, cool: 16 },
+    { id: 'magnet', name: 'Magnet', short: 'Magnet', desc: 'Zieht Nitro-Kristalle aus allen Spuren zu dir. Sie zählen doppelt.', dur: 6, cool: 14 },
+    { id: 'horn', name: 'Hupe', short: 'Hupe', desc: 'Autos auf deiner Spur weichen zur Seite aus.', dur: 3.5, cool: 11 },
+    { id: 'mini', name: 'Schrumpfen', short: 'Mini', desc: 'Dein Auto wird kurz halb so groß und passt durch enge Lücken.', dur: 3.5, cool: 12 },
+    { id: 'slow', name: 'Zeitlupe', short: 'Zeitlupe', desc: 'Alles um dich herum wird langsam, deine Lenkung bleibt schnell.', dur: 2.8, cool: 14 },
+    { id: 'double', name: 'Doppelt', short: 'Doppelt', desc: 'Jede Überholung zählt für kurze Zeit doppelt.', dur: 6, cool: 16 },
+    { id: 'emp', name: 'EMP', short: 'EMP', desc: 'Legt den Verkehr lahm: Alle anderen fahren kurz nur noch im Schneckentempo.', dur: 3.2, cool: 15 },
+    { id: 'glide', name: 'Gleiter', short: 'Gleiter', desc: 'Hebt ab und gleitet lange über den Verkehr hinweg.', dur: 2.6, cool: 13 },
+    { id: 'ghost', name: 'Phantom', short: 'Phantom', desc: 'Fährt kurz durch andere Fahrzeuge einfach hindurch.', dur: 2.2, cool: 13 },
+    { id: 'teleport', name: 'Teleport', short: 'Teleport', desc: 'Springt sofort 70 Meter nach vorn. Alles dazwischen zählt als überholt.', dur: 0.4, cool: 14 },
+    { id: 'clear', name: 'Schockwelle', short: 'Welle', desc: 'Fegt alle Fahrzeuge auf deiner Spur vor dir weg.', dur: 0.4, cool: 14 },
+    { id: 'shield', name: 'Schild', short: 'Schild', desc: 'Schleudert Fahrzeuge weg, die du berührst. Zählt als überholt.', dur: 3.0, cool: 14 },
+    { ids: ['shield', 'rocket'], name: 'Rammbock', short: 'Ramme', desc: 'Raketenschub mit Schild: Du rast durch den Verkehr und schleuderst alles weg.', dur: 2.6, cool: 16 }
   ];
-  function skillFor(i) {
-    var pick = null;
-    SKILLS.forEach(function (s) { if (i >= s.from) pick = s; });
-    if (!pick) return null;
-    var step = i - pick.from;
-    var sk = { ids: [pick.id], name: pick.name, short: pick.short, desc: pick.desc,
-               dur: pick.dur * (1 + 0.15 * step) * (1 + 0.025 * i), cool: pick.cool * (1 - 0.1 * step) * (1 - 0.015 * i) };
-    var c = COMBOS[i];
-    if (c) { sk.ids = c.ids; sk.name = c.name; sk.short = c.short; sk.desc = c.desc; }
-    return sk;
-  }
-  /* Ab Auto 10 bekommt das bessere Auto jedes Paars eine Doppel-Fähigkeit, Auto 20 sogar eine dreifache */
   var COMBOS = {
-    9:  { ids: ['mini', 'refill'], name: 'Mini-Turbo', short: 'Mini+', desc: 'Schrumpft dein Auto und füllt gleichzeitig den Nitro-Tank.' },
-    11: { ids: ['slow', 'refill'], name: 'Turbolupe', short: 'Lupe+', desc: 'Zeitlupe für alle anderen und dazu ein voller Nitro-Tank.' },
-    13: { ids: ['double', 'slow'], name: 'Doppelzeit', short: 'Doppel+', desc: 'Überholungen zählen doppelt, und alles um dich herum wird langsam.' },
-    15: { ids: ['ghost', 'double'], name: 'Geisterjagd', short: 'Geist+', desc: 'Du fährst durch alles hindurch, und jede Überholung zählt doppelt.' },
-    17: { ids: ['clear', 'refill'], name: 'Sturmwelle', short: 'Sturm', desc: 'Fegt deine Spur frei und füllt den Nitro-Tank.' },
-    18: { ids: ['shield', 'slow'], name: 'Festung', short: 'Festung', desc: 'Schild und Zeitlupe gleichzeitig.' },
-    19: { ids: ['shield', 'slow', 'double'], name: 'Sternenkraft', short: 'Sterne', desc: 'Schild, Zeitlupe und doppelte Punkte auf einmal.' }
+    17: { ids: ['shield', 'slow'], name: 'Festung', short: 'Festung', desc: 'Schild und Zeitlupe gleichzeitig.', dur: 3.4, cool: 14 },
+    18: { ids: ['freeze', 'double'], name: 'Zeitstopp', short: 'Stopp', desc: 'Der Verkehr bleibt stehen, und jede Überholung zählt doppelt.', dur: 3.0, cool: 16 },
+    19: { ids: ['shield', 'rocket', 'double'], name: 'Sternenkraft', short: 'Sterne', desc: 'Schild, Raketenschub und doppelte Punkte auf einmal.', dur: 3.4, cool: 15 }
   };
+  function skillFor(i) {
+    var pick = i >= 17 ? COMBOS[i] : SKILLS[i - 2];
+    if (!pick) return null;
+    return { ids: pick.ids || [pick.id], name: pick.name, short: pick.short, desc: pick.desc,
+             dur: pick.dur * (1 + 0.02 * i), cool: pick.cool * (1 - 0.012 * i) };
+  }
   var NAMES = ['Nachtfalke', 'Pfeil S', 'Bulle 8', 'Schatten', 'Sturmvogel', 'Klinge R', 'Donner GT', 'Irrlicht', 'Polarstern', 'Komet X',
                'Gigant V', 'Nebelgeist', 'Feuerfalke', 'Laser RS', 'Vulkan 12', 'Spektrum', 'Sonnenwind', 'Photon', 'Koloss', 'Sternenjäger'];
   var PAINTS = [0xd8321f, 0xf2c21a, 0x2456c8, 0x3a3f4a, 0xe8eaee, 0x17a36b, 0xe0661a, 0x7b3fc4, 0x9fd4ef, 0xc41a4a,
@@ -1317,6 +1354,7 @@
   TRAFFIC_COLORS.forEach(function (c, i) { traffic.push(buildTrafficCar(c, i % 4)); });
   [0xe8eaee, 0xd8a01f].forEach(function (c) { traffic.push(buildVan(c)); });
   [0x1746b8, 0xc23a2a, 0x1f8a70].forEach(function (c) { traffic.push(buildTruck(c)); });
+  [0xe0a020, 0x8a8f99, 0x2a8f6a].forEach(function (c) { traffic.push(buildRampTruck(c)); });
   traffic.forEach(function (c) { c.x = 9999; c.lane = 0; c.z = 0; c.v = 0; c.base = 0; c.behind = false; c.active = false; c.chg = 0; c.to = 0; c.from = 0; });
 
   /* Funken und Gischt */
@@ -1388,6 +1426,8 @@
     crash: function () { noise(0.9, 0.7, 2500); tone(140, 0.6, 'sawtooth', 0.3, 0, 40); },
     skill: function () { tone(300, 0.35, 'sawtooth', 0.12, 0, 1200); },
     combo: function () { tone(784, 0.1, 'square', 0.09); tone(1175, 0.2, 'square', 0.09, 0.08); },
+    ramp: function () { tone(220, 0.5, 'sawtooth', 0.14, 0, 880); },
+    horn: function () { tone(440, 0.45, 'square', 0.1); tone(554, 0.45, 'square', 0.1); },
     hit: function () { noise(0.4, 0.6, 1800); tone(90, 0.3, 'sine', 0.4, 0, 45); tone(3200, 1.2, 'sine', 0.035); }
   };
   function buzz(ms) { try { if (audioOn() && navigator.vibrate) navigator.vibrate(ms); } catch (e) {} }
@@ -1473,6 +1513,10 @@
     document.body.classList.add('dazed');
     clearTimeout(dazeTimer);
     dazeTimer = setTimeout(function () { document.body.classList.remove('dazed'); }, 500);
+  }
+  function mega() {
+    var m = $('mega'); m.classList.remove('fx'); void m.offsetWidth; m.classList.add('fx');
+    SFX.unlock(); fireworks(); setTimeout(fireworks, 500); setTimeout(fireworks, 1000); flash(true); buzz(150);
   }
   function showDamage() {
     var pips = $('dmg').children;
@@ -1706,7 +1750,7 @@
   var v = 14, pz = 0, vz = 0, passed = 0, level = 1, runStart = 1, shake = 0, overT = 0, totalAtStart = 0, startBiome = 0, miniS = 1;
   var nitro = 1, depleted = false, cool = 0, boost = 0, time = 0, ws = 1, jumpY = 0, menuAngle = 0.9;
   var sk = { active: false, t: 0, cd: 0 };
-  var score = 0, combo = 0, comboT = 0, COMBO_TIME = 3.2, punch = 0, nextIdx = 0, newBest = false, rushOn = false, damage = 0, hitT = 0, dazeT = 0;
+  var score = 0, combo = 0, comboT = 0, COMBO_TIME = 3.2, punch = 0, nextIdx = 0, newBest = false, rushOn = false, damage = 0, hitT = 0, dazeT = 0, skillJ = 0, rampT = -1, rampV = 0, RAMP_DUR = 1.3;
 
   /* ---------- Verkehr ---------- */
   function laneFree(c, z, x, margin) {
@@ -1720,7 +1764,7 @@
   }
   function place(c, x) {
     for (var tries = 0; tries < 16; tries++) {
-      c.lane = c.truck ? 3 + Math.floor(Math.random() * 2) : Math.floor(Math.random() * 5);
+      c.lane = c.truck && !c.ramp ? 3 + Math.floor(Math.random() * 2) : Math.floor(Math.random() * 5);
       if (laneFree(c, LANES[c.lane], x, 15)) break;
       x += 8;
     }
@@ -1793,7 +1837,7 @@
     $('hud').hidden = true; $('pad').hidden = true; $('garage').hidden = false;
     document.body.classList.remove('slow');
     traffic.forEach(park);
-    pz = 0; vz = 0; v = 14; jumpY = 0; ws = 1; boost = 0;
+    pz = 0; vz = 0; v = 14; jumpY = 0; skillJ = 0; rampT = -1; ws = 1; boost = 0;
     $('g-total').textContent = save.total; $('g-best').textContent = save.best; $('g-score').textContent = save.bestScore;
     combo = 0; showCombo(false); hideGems(); $('pops').textContent = '';
     damage = 0; hitT = 0; dazeT = 0; document.body.classList.remove('dazed'); closeKeys();
@@ -1809,7 +1853,7 @@
     unzoom(); fitView();
     showLvl(); runStart = save.startLevel;
     state = 'run'; v = 25; pz = 0; vz = 0; passed = 0; level = runStart; shake = 0; miniS = 1;
-    nitro = 1; depleted = false; cool = 0; ws = 1; jumpY = 0;
+    nitro = 1; depleted = false; cool = 0; ws = 1; jumpY = 0; skillJ = 0; rampT = -1;
     sk.active = false; sk.t = 0; sk.cd = 0;
     totalAtStart = save.total;
     damage = 0; hitT = 0; dazeT = 0; showDamage(); closeKeys();
@@ -1877,15 +1921,12 @@
     } else pop('+' + pts, mult() > 1 ? 'gold' : '');
     SFX.pass(combo);
     if (combo % 5 === 0) { pop('Serie ' + combo + '!', 'gold big'); SFX.combo(); }
+    if (combo % 100 === 0) { mega(); pts += 5000; }
     showCombo(true);
     var lv = Math.min(20, runStart + Math.floor(passed / 8));
     if (lv > save.maxLevel) save.maxLevel = lv;
     if (lv !== level) {
       level = lv; pts += 100;
-      if (damage > 0) {
-        damage--; showDamage(); pop('Repariert', 'cyan');
-        for (var pi = 0; pi < player.parts.length; pi++) if (!player.parts[pi].visible) { player.parts[pi].visible = true; break; }
-      }
       $('level').textContent = 'Stufe ' + level;
       var nb = (startBiome + Math.floor((level - runStart) / 2)) % BIOMES.length;
       if (nb !== biome) { setBiome(nb, false); showToast(BIOMES[nb].name, 'Stufe ' + level); }
@@ -1912,6 +1953,19 @@
     sk.active = true; sk.t = 0; SFX.skill(); punch = 0.8;
     var ids = D.skill.ids;
     function on(x) { return ids.indexOf(x) >= 0; }
+    if (on('horn')) SFX.horn();
+    if (on('emp') || on('freeze')) { flash(false); shake = 0.2; }
+    if (on('teleport')) {
+      for (var ti = 0; ti < traffic.length; ti++) {
+        var tc = traffic[ti];
+        if (!tc.active) continue;
+        tc.x -= 70;
+        /* Landeplatz frei räumen: nichts direkt vor oder auf dem Auto */
+        if (tc.x > -(tc.hl + 3) && tc.x < 45 && Math.abs(tc.z - pz) < tc.hw + 1.2) tc.x = -(tc.hl + 3.2);
+      }
+      gems.forEach(function (o) { if (o.x < 9000) o.x -= 70; });
+      dist += 70; hitT = Math.max(hitT, 1.0); flash(false); burst(0, 0.8, pz, sparkCyan, 14);
+    }
     if (on('shield')) player.shield.visible = true;
     if (on('ghost')) { player.paint.transparent = true; player.paint.opacity = 0.3; player.paint.needsUpdate = true; player.aura.visible = true; }
     if (on('slow')) document.body.classList.add('slow');
@@ -1942,7 +1996,7 @@
     if (player.paint.transparent) { player.paint.transparent = false; player.paint.opacity = 1; player.paint.needsUpdate = true; }
     document.body.classList.remove('slow');
     $('passed').classList.remove('dbl');
-    jumpY = 0;
+    skillJ = 0;
   }
 
   /* ---------- Eingabe ---------- */
@@ -2076,10 +2130,16 @@
   var elKmh = $('kmh'), elNitro = $('nitro'), elFill = $('nitro-fill'), elSkillBar = $('skillbar'), elSkillFill = $('skill-fill'), elSkillKey = $('k-skill');
 
   function updateTraffic(dtW) {
+    var tf = has('freeze') ? 0 : has('emp') ? 0.3 : 1, hornOn = has('horn');
     for (var i = 0; i < traffic.length; i++) {
       var c = traffic[i];
       if (!c.active) continue;
       /* Spurwechsel: erst blinken, dann rüberziehen */
+      if (hornOn && c.chg === 0 && c.blinkL && c.x > 3 && c.x < 90 && Math.abs(c.z - pz) < 1.7) {
+        var hd = c.z >= pz ? 1 : -1, ht = c.lane + hd;
+        if (ht < 0 || ht > 4 || !laneFree(c, LANES[ht], c.x, 5)) ht = c.lane - hd;
+        if (ht >= 0 && ht <= 4 && laneFree(c, LANES[ht], c.x, 5)) { c.chg = 0.9; c.to = ht; c.from = c.lane; }
+      }
       if (c.chg === 0 && c.blinkL && level >= 2 && c.x > 25 && c.x < 220 &&
           Math.random() < Math.min(0.1, 0.02 + level * 0.006) * dtW) {
         var dir = Math.random() < 0.5 ? -1 : 1, to = c.lane + dir;
@@ -2106,7 +2166,7 @@
         var dx = o.x - c.x;
         if (dx > 0 && dx < c.hl + o.hl + 7 && Math.abs(o.z - c.z) < c.hw + o.hw + 0.3) limit = Math.min(limit, o.v);
       }
-      c.v = limit;
+      c.v = limit * tf;
       c.x += (c.v - v) * dtW;
       if (c.x > 310) c.x = 310;
       if (state === 'run') {
@@ -2118,8 +2178,12 @@
         if (c.x < -36) {
           if (i < activeTarget()) place(c, 160 + Math.random() * Math.max(50, 130 - level * 5)); else park(c);
         }
-        if (c.active && Math.abs(c.x) < c.hl + 2.05 * miniS && Math.abs(pz - c.z) < c.hw + 0.78 * miniS && jumpY < 1.0) {
-          if (has('shield')) {
+        if (c.active && Math.abs(c.x) < c.hl + 2.05 * miniS && Math.abs(pz - c.z) < c.hw + 0.78 * miniS && jumpY < 1.0 && rampT < 0) {
+          if (c.ramp && c.x > c.hl - 1.5 && Math.abs(pz - c.z) < 0.85 && v > c.v + 2) {
+            rampT = 0; rampV = Math.max(v, c.v + 17);
+            var rpts = 100 * mult(); score += rpts; $('score').textContent = score;
+            pop('Rampe! +' + rpts, 'gold big'); SFX.ramp(); punch = 1; buzz(30);
+          } else if (has('shield')) {
             burst(c.x * 0.5, 0.8, (pz + c.z) / 2, sparkCyan, 14);
             shake = 0.25; countPass();
             place(c, 170 + Math.random() * 80);
@@ -2159,11 +2223,21 @@
     if (state === 'run') {
       if (sk.active) {
         sk.t += dt;
-        if (has('jump')) { var jp = Math.min(1, sk.t / D.skill.dur); jumpY = 13.6 * jp * (1 - jp); }
+        if (has('jump')) { var jp = Math.min(1, sk.t / D.skill.dur); skillJ = 13.6 * jp * (1 - jp); }
+        if (has('glide')) { var gl = Math.min(1, sk.t / D.skill.dur); skillJ = 3.4 * Math.min(1, Math.sin(Math.PI * gl) * 2.4); }
         if (sk.t >= D.skill.dur) endSkill(false);
       } else if (sk.cd > 0) sk.cd -= dt;
 
-      boosting = held.nitro && !depleted && nitro > 0;
+      var rj = 0;
+      if (rampT >= 0) {
+        rampT += dtW;
+        var rp = rampT / RAMP_DUR;
+        if (rp >= 1) { rampT = -1; shake = 0.2; burst(0, 0.3, pz, sparkOrange, 6); }
+        else { rj = 15.2 * rp * (1 - rp); if (v < rampV) v = rampV; }
+      }
+      jumpY = Math.max(skillJ, rj);
+      var rocket = has('rocket'), magnetOn = has('magnet');
+      boosting = !rocket && held.nitro && !depleted && nitro > 0;
       if (boosting) {
         nitro -= dt / D.nDur; cool = 0.8;
         if (nitro <= 0) { nitro = 0; depleted = true; }
@@ -2172,10 +2246,12 @@
         if (cool <= 0) nitro = Math.min(1, nitro + dt / D.nRe);
         if (depleted && nitro >= 0.25) depleted = false;
       }
+      if (rocket) boosting = true;
+      var topV = D.top * (1 - 0.07 * damage);
       if (held.brake) v -= 34 * dtW;
-      else if (boosting) v += D.acc * 2.1 * (1 - v / (D.top * 1.36)) * dtW;
-      else if (held.gas) v += D.acc * (1 - v / D.top) * dtW;
-      else v -= (v > D.top ? 8 : 3.5) * dtW;
+      else if (boosting) v += D.acc * 2.1 * (1 - v / (topV * 1.36)) * dtW;
+      else if (held.gas) v += D.acc * (1 - v / topV) * dtW;
+      else v -= (v > topV ? 8 : 3.5) * dtW;
       v = Math.max(0, v);
       var want = ((held.right ? 1 : 0) - (held.left ? 1 : 0)) * D.grip * Math.min(1, v / 10);
       vz += (want - vz) * Math.min(1, dt * 9);
@@ -2187,10 +2263,11 @@
       for (var gi2 = 0; gi2 < gems.length && state === 'run'; gi2++) {
         var gm2 = gems[gi2];
         gm2.x -= v * dtW;
+        if (magnetOn && gm2.x < 75 && gm2.x > -6) gm2.z += (pz - gm2.z) * Math.min(1, dt * 5);
         if (gm2.x < -25) placeGem(gm2);
         else if (Math.abs(gm2.x) < 2.6 && Math.abs(gm2.z - pz) < 1.5 && jumpY < 2) {
           nitro = Math.min(1, nitro + 0.3); if (nitro >= 0.25) depleted = false;
-          var gp = 25 * mult(); score += gp; $('score').textContent = score;
+          var gp = 25 * mult() * (magnetOn ? 2 : 1); score += gp; $('score').textContent = score;
           pop('Nitro +' + gp, 'cyan'); SFX.pick(); burst(0, 1, pz, sparkCyan, 8); punch = 0.6;
           placeGem(gm2);
         }
@@ -2218,7 +2295,8 @@
     g.rotation.y = -vz * 0.02;
     g.rotation.x = vz * 0.005;
     var pitch = boost * 0.012;
-    if (jumpY > 0 && D.skill) pitch += (0.5 - sk.t / D.skill.dur) * 0.22;
+    if (rampT >= 0) pitch += (0.5 - rampT / RAMP_DUR) * 0.3;
+    else if (jumpY > 0 && sk.active) pitch += (0.5 - sk.t / D.skill.dur) * 0.22;
     g.rotation.z = pitch;
     miniS += ((has('mini') ? 0.5 : 1) - miniS) * Math.min(1, dt * 8);
     g.scale.setScalar(miniS);
