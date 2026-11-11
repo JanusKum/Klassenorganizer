@@ -74,7 +74,7 @@
   .count small { color: var(--accent); font-size: 16px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
 
   .toast {
-    position: absolute; left: 0; right: 0; top: 28%; text-align: center; pointer-events: none;
+    position: absolute; left: 0; right: 0; top: 40%; text-align: center; pointer-events: none;
     font: 700 clamp(40px, 12vw, 72px) var(--display); letter-spacing: 0.06em; text-transform: uppercase; line-height: 1;
     color: var(--accent); text-shadow: 0 0 30px rgba(255, 178, 62, 0.6); opacity: 0;
   }
@@ -177,6 +177,50 @@
   .garage { position: fixed; top: var(--vvt, 0px); bottom: auto; height: var(--vvh, 100%); }
   .opt { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
   .opt button { height: 40px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--fg); font: 700 17px var(--display); letter-spacing: 0.04em; text-transform: uppercase; cursor: pointer; }
+  /* ---------- Belohnungen und Effekte ---------- */
+  .count .pts { display: block; margin-top: 2px; font-size: 15px; color: var(--muted); letter-spacing: 0.06em; }
+  .count .pts b { display: inline; font-size: 22px; color: var(--fg); }
+  .next { margin-top: 6px; margin-left: auto; width: min(160px, 36vw); }
+  .next div { height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.18); overflow: hidden; }
+  .next i { display: block; height: 100%; width: 0; background: var(--skill); }
+  .next span { display: block; margin-top: 3px; font: 500 12px var(--display); letter-spacing: 0.06em; color: var(--muted); text-transform: uppercase; }
+  .combo {
+    position: fixed; left: 0; width: var(--vw, 100%); top: calc(var(--vvt, 0px) + var(--vvh, 100vh) * 0.26); text-align: center; pointer-events: none;
+    font-family: var(--display); font-weight: 700; text-transform: uppercase; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.7);
+  }
+  .combo b { display: block; font-size: clamp(36px, 10vw, 64px); line-height: 0.95; color: var(--accent); }
+  .combo.bump b { animation: bump 0.25s ease-out; }
+  .combo span { font-size: 14px; letter-spacing: 0.16em; color: var(--fg); }
+  .combo div { margin: 6px auto 0; width: 120px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.2); overflow: hidden; }
+  .combo i { display: block; height: 100%; background: var(--accent); }
+  @keyframes bump { 0% { transform: scale(1.6); } 100% { transform: scale(1); } }
+  .pops { position: fixed; left: 0; width: var(--vw, 100%); top: calc(var(--vvt, 0px) + var(--vvh, 100vh) * 0.5); height: 0; pointer-events: none; }
+  .pop {
+    position: absolute; left: 50%; white-space: nowrap;
+    font: 700 clamp(20px, 5.5vw, 30px) var(--display); letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--fg); text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8); animation: rise 0.9s ease-out forwards;
+  }
+  .pop.gold { color: var(--accent); }
+  .pop.cyan { color: var(--nitro); }
+  .pop.big { font-size: clamp(26px, 7.5vw, 42px); }
+  @keyframes rise {
+    0% { opacity: 0; transform: translate(-50%, 12px) scale(0.6); }
+    15% { opacity: 1; transform: translate(-50%, 0) scale(1.15); }
+    100% { opacity: 0; transform: translate(-50%, -90px) scale(1); }
+  }
+  .flash { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; opacity: 0; background: #ffffff; }
+  .flash.red { background: #ff3a20; }
+  .flash.go { animation: flash 0.5s ease-out; }
+  @keyframes flash { 0% { opacity: 0.5; } 100% { opacity: 0; } }
+  .rush {
+    position: fixed; top: var(--vvt, 0px); left: 0; width: var(--vw, 100%); height: var(--vvh, 100%); pointer-events: none; opacity: 0;
+    background:
+      repeating-conic-gradient(from 0deg at 50% 50%, rgba(255,255,255,0) 0deg 6deg, rgba(255,255,255,0.55) 6.3deg, rgba(255,255,255,0) 6.8deg 13deg),
+      repeating-conic-gradient(from 3deg at 50% 50%, rgba(160,230,255,0) 0deg 4deg, rgba(160,230,255,0.4) 4.2deg, rgba(160,230,255,0) 4.5deg 7deg);
+    -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 17%, #000 46%);
+    mask-image: radial-gradient(circle at 50% 50%, transparent 17%, #000 46%);
+  }
+  @media (prefers-reduced-motion: reduce) { .rush, .flash { display: none; } }
   /* Tasten selbst anordnen */
   .pad.swap { flex-direction: row-reverse; }
   .pad.free { transform: none; top: var(--vvt, 0px); height: 0; padding: 0; }
@@ -218,6 +262,7 @@
 <body>
 <canvas id="stage" aria-label="3D-Rennspiel: Sportwagen auf einer fünfspurigen Straße bei Nacht"></canvas>
 <div class="vig"></div>
+<div id="rush" class="rush"></div>
 
 <div id="hud" class="hud" hidden>
   <div>
@@ -225,9 +270,12 @@
     <div id="nitro" class="meter"><label>Nitro</label><div><i id="nitro-fill"></i></div></div>
     <div id="skillbar" class="meter skill"><label id="skill-label">Sprung</label><div><i id="skill-fill"></i></div></div>
   </div>
-  <div class="count"><b id="passed">0</b>überholt<br><small id="level">Stufe 1</small></div>
+  <div class="count"><b id="passed">0</b>überholt<br><small id="level">Stufe 1</small><span class="pts"><b id="score">0</b> Punkte</span><div id="next" class="next" hidden><div><i id="next-fill"></i></div><span id="next-text"></span></div></div>
 </div>
 <div id="toast" class="toast"></div>
+<div id="combo" class="combo" hidden><b id="combo-x">2</b><span id="combo-label">Serie</span><div><i id="combo-fill"></i></div></div>
+<div id="pops" class="pops"></div>
+<div id="flash" class="flash"></div>
 
 <div id="pad" class="pad" hidden>
   <div id="g-pedals" class="col">
@@ -249,7 +297,7 @@
 <div id="garage" class="garage">
   <header class="g-top">
     <h1>Nacht<span>falke</span></h1>
-    <p><b id="g-total">0</b> Fahrzeuge insgesamt überholt · Rekord <b id="g-best">0</b></p>
+    <p><b id="g-total">0</b> insgesamt überholt · Rekord <b id="g-best">0</b> · Bestpunkte <b id="g-score">0</b></p>
     <p id="g-result" class="g-result" hidden></p>
   </header>
   <section class="sheet">
@@ -266,6 +314,7 @@
         <dt>Nitro</dt><dd><i id="st-nitro"></i></dd>
       </dl>
       <div id="lock" class="lock" hidden><div><i id="lock-fill"></i></div><span id="lock-text"></span></div>
+      <div class="opt"><span>Ton und Vibration</span><button id="snd" type="button">An</button></div>
       <div class="opt"><span>Lenken und Gas tauschen</span><button id="swap" type="button">Normal</button></div>
       <div class="opt"><span>Tasten selbst anordnen</span><button id="arrange" type="button">Anordnen</button></div>
       <div class="opt"><span>Lage der Tasten im Rennen</span><button id="lift" type="button">Unten</button></div>
@@ -355,7 +404,7 @@
   renderer.setPixelRatio(pixelRatio);
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.3;
+  renderer.toneMappingExposure = 1.14;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   var MAXANISO = renderer.capabilities.getMaxAnisotropy();
@@ -911,6 +960,7 @@
   var tailGlow = glowMat(0xff2a12, 0.85), headGlow = glowMat(0xdde9ff, 0.9), blinkGlow = glowMat(0xffa01a, 1);
   var blobMat = decalMat(blobTex, 0xffffff, 0.9, false);
   var tailRefl = decalMat(glowTex, 0xff2010, 0.3, true);
+  var headPool = decalMat(beamTex, 0xfff0d0, 0.3, true);
   var unitPlane = new THREE.PlaneGeometry(1, 1); unitPlane.userData.shared = true;
 
   var TYPES = [
@@ -1018,7 +1068,7 @@
   /* Verkehrsautos in vier Karosserieformen */
   function buildTrafficCar(color, t) {
     var P = TYPES[t], car = new THREE.Group(), wheels = [], wz = 0.8 * P.w / 1.82, tailY = P.tail - 0.16;
-    var paint = new THREE.MeshPhysicalMaterial({ color: color, metalness: 0.55, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.05 });
+    var paint = new THREE.MeshPhysicalMaterial({ color: color, metalness: 0.5, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 0.75 });
     car.add(new THREE.Mesh(stdGeos[t].body, paint));
     car.add(new THREE.Mesh(stdGeos[t].cab, glass));
     roofPanel(car, P, paint);
@@ -1036,6 +1086,7 @@
     [[FX, wz], [FX, -wz], [RX, wz], [RX, -wz]].forEach(function (p) { simpleWheel(car, p[0], WY, p[1], 1, wheels); });
     addDecal(car, blobMat, 6.2, 3.0, 0, -0.02);
     addDecal(car, tailRefl, 6, 2.4, -4.2, -0.015);
+    addDecal(car, headPool, 14, 5, 9.3, -0.012);
     car.position.y = 0.04; car.visible = false;
     scene.add(car);
     return { group: car, wheels: wheels, wr: 0.34, hl: 2.3, hw: 0.92, blinkL: bl[0], blinkR: bl[1] };
@@ -1060,6 +1111,7 @@
     });
     addDecal(van, blobMat, 6.6, 3.2, 0, -0.02);
     addDecal(van, tailRefl, 6, 2.5, -4.4, -0.015);
+    addDecal(van, headPool, 14, 5, 9.5, -0.012);
     van.position.y = 0.04; van.visible = false;
     scene.add(van);
     return { group: van, wheels: wheels, wr: 0.37, hl: 2.5, hw: 0.98, blinkL: bl[0], blinkR: bl[1] };
@@ -1085,6 +1137,7 @@
     });
     addDecal(tr, blobMat, 11.5, 3.8, 0, -0.02);
     addDecal(tr, tailRefl, 6, 2.8, -6.5, -0.015);
+    addDecal(tr, headPool, 16, 6, 12.4, -0.012);
     tr.position.y = 0.04; tr.visible = false;
     scene.add(tr);
     return { group: tr, wheels: wheels, wr: 0.46, hl: 4.5, hw: 1.2, truck: true };
@@ -1149,10 +1202,11 @@
     var P = TYPES[D.type], geos = stdGeos[D.type], car = new THREE.Group(), wheels = [];
     var wz = 0.8 * P.w / 1.82, side = P.w / 2 + 0.062;
     var paint = new THREE.MeshPhysicalMaterial({
-      color: D.color, metalness: D.chrome ? 1 : 0.62, roughness: D.chrome ? 0.1 : 0.26 - D.tier * 0.02,
-      clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.3 + D.tier * 0.15
+      color: D.color, metalness: D.chrome ? 1 : 0.5, roughness: D.chrome ? 0.1 : 0.26 - D.tier * 0.02,
+      clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 0.85 + D.tier * 0.12
     });
     var neon = new THREE.MeshBasicMaterial({ color: D.accent });
+    var trailMat = decalMat(beamTex, 0xff2a12, 0, true);
     car.add(new THREE.Mesh(geos.body, paint));
     car.add(new THREE.Mesh(geos.cab, glass));
     roofPanel(car, P, paint);
@@ -1191,17 +1245,15 @@
       if (D.tier >= 1) addBox(car, 0.05, wingY - P.tail + 0.06, 0.04, -1.9, (wingY + P.tail) / 2 - 0.02, s * 0.5, dark);
       if (D.tier >= 2) addBox(car, 1.5, 0.025, 0.02, 0.05, 0.43, s * side, neon);
       if (D.tier >= 3) addBox(car, 0.5, 0.26, 0.03, -1.95, wingY - 0.08, s * (P.w / 2 - 0.02), paint);
-      if (D.tier >= 4) {
-        addBox(car, 0.3, 0.02, 0.22, 2.0, 0.34, s * (side - 0.02), dark);
-        var trail = new THREE.Mesh(unitPlane, decalMat(beamTex, 0xff2a12, 0.75, true));
-        trail.rotation.x = -Math.PI / 2; trail.scale.set(-7, 0.34, 1); trail.position.set(-5.8, tailY, s * 0.56);
-        car.add(trail);
-      }
+      if (D.tier >= 4) addBox(car, 0.3, 0.02, 0.22, 2.0, 0.34, s * (side - 0.02), dark);
+      var trail = new THREE.Mesh(unitPlane, trailMat);
+      trail.rotation.x = -Math.PI / 2; trail.scale.set(-7, 0.34, 1); trail.position.set(-5.8, tailY, s * 0.56);
+      trail.userData.noShadow = true; car.add(trail);
     });
     if (D.tier >= 1) addBox(car, D.tier >= 3 ? 0.5 : 0.36, 0.03, D.tier >= 3 ? P.w : P.w - 0.16, -1.95, wingY, 0, paint);
     if (D.tier >= 3) addBox(car, 0.5, 0.1, 0.34, (P.roofF + P.roofR) / 2 - 0.15, P.roof + 0.11, 0, dark);
     [[FX, wz], [FX, -wz], [RX, wz], [RX, -wz]].forEach(function (p) { heroWheel(car, p[0], WY, p[1], wheels, D.tier >= 3 ? neon : null); });
-    car.traverse(function (o) { if (o.isMesh) o.castShadow = true; });
+    car.traverse(function (o) { if (o.isMesh && !o.userData.noShadow) o.castShadow = true; });
 
     var floorG = new THREE.Group();          /* bleibt auch beim Sprung am Boden */
     addDecal(floorG, blobMat, 6.2, 3.0, 0, -0.02);
@@ -1224,13 +1276,13 @@
 
     car.position.y = 0.04;
     scene.add(car);
-    return { group: car, wheels: wheels, paint: paint, floorG: floorG, beam: beam, under: under,
+    return { group: car, wheels: wheels, paint: paint, trailMat: trailMat, floorG: floorG, beam: beam, under: under,
              flames: flames, flameMat: flameMat, shield: shield, aura: aura, def: D };
   }
   function disposeCar(obj) {
     scene.remove(obj.group);
     obj.group.traverse(function (o) { if (o.geometry && !o.geometry.userData.shared) o.geometry.dispose(); });
-    obj.paint.dispose();
+    obj.paint.dispose(); obj.trailMat.dispose();
   }
 
   var TRAFFIC_COLORS = [0xcfd8e2, 0x1746b8, 0xa6d629, 0xf2f2f2, 0x2b2f36, 0xe08a1e, 0x1f8a70, 0x7b3fc4, 0xd8c21f, 0x8c1c2c,
@@ -1260,6 +1312,120 @@
   var sprayMat = new THREE.SpriteMaterial({ map: glowTex, color: 0xffffff, transparent: true, opacity: 0, depthWrite: false });
   var sprays = [-1, 1].map(function () { var s = new THREE.Sprite(sprayMat); s.visible = false; scene.add(s); return s; });
 
+  /* ---------- Ton ---------- */
+  var AC = null, master = null, eng = null, noiseBuf = null, nitroG = null;
+  function audioOn() { return save.snd !== false; }
+  function initAudio() {
+    if (!audioOn()) return;
+    if (AC) { try { if (AC.state === 'suspended') AC.resume(); } catch (e) {} return; }
+    try {
+      var C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+      AC = new C();
+      master = AC.createGain(); master.gain.value = 0.5; master.connect(AC.destination);
+      noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
+      var d = noiseBuf.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      var o1 = AC.createOscillator(), o2 = AC.createOscillator(), f = AC.createBiquadFilter(), g = AC.createGain();
+      o1.type = 'sawtooth'; o2.type = 'square'; f.type = 'lowpass'; f.frequency.value = 400; g.gain.value = 0;
+      o1.connect(f); o2.connect(f); f.connect(g); g.connect(master); o1.start(); o2.start();
+      eng = { o1: o1, o2: o2, f: f, g: g };
+      var n = AC.createBufferSource(), nf = AC.createBiquadFilter();
+      n.buffer = noiseBuf; n.loop = true; nf.type = 'bandpass'; nf.frequency.value = 1800; nf.Q.value = 0.7;
+      nitroG = AC.createGain(); nitroG.gain.value = 0;
+      n.connect(nf); nf.connect(nitroG); nitroG.connect(master); n.start();
+    } catch (e) { AC = null; eng = null; }
+  }
+  function tone(freq, dur, type, vol, when, slide) {
+    if (!AC || !audioOn()) return;
+    try {
+      var t = AC.currentTime + (when || 0), o = AC.createOscillator(), g = AC.createGain();
+      o.type = type || 'triangle'; o.frequency.setValueAtTime(freq, t);
+      if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + dur);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || 0.2, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.05);
+    } catch (e) {}
+  }
+  function noise(dur, vol, freq, when) {
+    if (!AC || !audioOn()) return;
+    try {
+      var t = AC.currentTime + (when || 0), n = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+      n.buffer = noiseBuf; f.type = 'lowpass'; f.frequency.setValueAtTime(freq || 1200, t); f.frequency.exponentialRampToValueAtTime(120, t + dur);
+      g.gain.setValueAtTime(vol || 0.4, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      n.connect(f); f.connect(g); g.connect(master); n.start(t); n.stop(t + dur + 0.05);
+    } catch (e) {}
+  }
+  var SFX = {
+    pass: function (c) { var f = 520 * Math.pow(1.06, Math.min(c, 14)); tone(f, 0.12, 'triangle', 0.16); tone(f * 1.5, 0.14, 'sine', 0.1, 0.05); },
+    near: function () { noise(0.3, 0.3, 3000); tone(880, 0.18, 'sine', 0.14, 0, 1760); },
+    pick: function () { tone(1320, 0.09, 'sine', 0.16); tone(1980, 0.16, 'sine', 0.14, 0.07); },
+    level: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, 0.22, 'triangle', 0.18, i * 0.09); }); },
+    unlock: function () { [523, 659, 784, 1047, 1319, 1568].forEach(function (f, i) { tone(f, 0.3, 'square', 0.09, i * 0.1); }); },
+    crash: function () { noise(0.9, 0.7, 2500); tone(140, 0.6, 'sawtooth', 0.3, 0, 40); },
+    skill: function () { tone(300, 0.35, 'sawtooth', 0.12, 0, 1200); },
+    combo: function () { tone(784, 0.1, 'square', 0.09); tone(1175, 0.2, 'square', 0.09, 0.08); }
+  };
+  function buzz(ms) { try { if (audioOn() && navigator.vibrate) navigator.vibrate(ms); } catch (e) {} }
+  function engineSound() {
+    if (!AC || !eng) return;
+    try {
+      var on = audioOn() && state === 'run', t = AC.currentTime, f = 55 + v * 2.1 + boost * 40;
+      eng.o1.frequency.setTargetAtTime(f, t, 0.05); eng.o2.frequency.setTargetAtTime(f * 0.5, t, 0.05);
+      eng.f.frequency.setTargetAtTime(300 + v * 9, t, 0.08);
+      eng.g.gain.setTargetAtTime(on ? 0.05 + Math.min(0.05, v / 1500) : 0, t, 0.08);
+      nitroG.gain.setTargetAtTime(on ? boost * 0.16 : 0, t, 0.05);
+    } catch (e) {}
+  }
+
+  /* ---------- Einblendungen ---------- */
+  function pop(text, cls) {
+    var box = $('pops'), el = document.createElement('div');
+    el.className = 'pop ' + (cls || ''); el.textContent = text;
+    el.style.marginLeft = Math.round(rnd(-70, 70)) + 'px'; el.style.top = Math.round(rnd(-24, 24)) + 'px';
+    box.appendChild(el);
+    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 950);
+    while (box.children.length > 6) box.removeChild(box.firstChild);
+  }
+  function flash(red) { var f = $('flash'); f.className = 'flash' + (red ? ' red' : ''); void f.offsetWidth; f.className += ' go'; }
+
+  /* ---------- Nitro-Kristalle zum Einsammeln ---------- */
+  var gems = [];
+  (function () {
+    var gemMat = new THREE.MeshStandardMaterial({ color: 0x4fd8ff, emissive: 0x2aa8ff, emissiveIntensity: 1.6, roughness: 0.2, metalness: 0.3 });
+    var gemGeo = new THREE.OctahedronGeometry(0.45, 0), gemGlow = glowMat(0x4fd8ff, 0.8), gemFloor = decalMat(glowTex, 0x4fd8ff, 0.35, true);
+    for (var i = 0; i < 5; i++) {
+      var g = new THREE.Group(), m = new THREE.Mesh(gemGeo, gemMat);
+      g.add(m); addGlow(g, gemGlow, 0, 0, 0, 2.8); addDecal(g, gemFloor, 3.2, 3.2, 0, -1.0);
+      g.visible = false; scene.add(g);
+      gems.push({ g: g, m: m, x: 9999, z: 0 });
+    }
+  })();
+  function placeGem(o) {
+    var far = 0;
+    gems.forEach(function (q) { if (q !== o && q.x < 9000 && q.x > far) far = q.x; });
+    o.x = Math.max(120, far) + rnd(70, 130); o.z = LANES[Math.floor(Math.random() * 5)]; o.g.visible = true;
+  }
+  function resetGems() { gems.forEach(function (o, i) { o.x = 90 + i * 85 + rnd(0, 30); o.z = LANES[Math.floor(Math.random() * 5)]; o.g.visible = true; }); }
+  function hideGems() { gems.forEach(function (o) { o.x = 9999; o.g.visible = false; }); }
+
+  /* ---------- Feuerwerk ---------- */
+  var fw = [], fwMats = [glowMat(0xffc040, 1), glowMat(0xff5ad0, 1), glowMat(0x4fd8ff, 1), glowMat(0x9dff4a, 1)];
+  for (var fw0 = 0; fw0 < 60; fw0++) {
+    var fws = new THREE.Sprite(fwMats[0]); fws.visible = false; scene.add(fws);
+    fw.push({ s: fws, life: 0, wait: 0, vx: 0, vy: 0, vz: 0 });
+  }
+  function fireworks() {
+    for (var b = 0; b < 3; b++) {
+      var cx = rnd(45, 80), cy = rnd(12, 22), cz = rnd(-18, 18), mat = fwMats[Math.floor(Math.random() * 4)], used = 0;
+      for (var i = 0; i < fw.length && used < 18; i++) {
+        var p = fw[i];
+        if (p.life > 0) continue;
+        var a = Math.random() * Math.PI * 2, e = Math.acos(rnd(-1, 1)), sp = rnd(6, 11);
+        p.vx = Math.sin(e) * Math.cos(a) * sp; p.vy = Math.cos(e) * sp; p.vz = Math.sin(e) * Math.sin(a) * sp;
+        p.s.material = mat; p.s.position.set(cx, cy, cz); p.s.visible = false;
+        p.life = rnd(0.9, 1.4); p.wait = 0.01 + b * 0.2; used++;
+      }
+    }
+  }
+
   /* Tempostreifen für den Nitro */
   var streakMat = new THREE.MeshBasicMaterial({ color: 0x9fe6ff, blending: THREE.AdditiveBlending, transparent: true, opacity: 0, depthWrite: false, fog: false });
   var streakGeo = new THREE.BoxGeometry(7, 0.025, 0.025), streaks = [];
@@ -1270,12 +1436,13 @@
   }
 
   /* ---------- Spielstand ---------- */
-  var save = { total: 0, best: 0, car: 0, maxLevel: 1, startLevel: 1, lift: 0 };
+  var ALL_OPEN = false;
+  var save = { total: 0, best: 0, car: 0, maxLevel: 1, startLevel: 1, lift: 0, bestScore: 0, snd: true };
   try {
     var rawSave = JSON.parse(localStorage.getItem('nachtfalke-save') || 'null');
     if (rawSave) { save.total = rawSave.total | 0; save.best = rawSave.best | 0; save.car = rawSave.car | 0; save.maxLevel = (rawSave.maxLevel | 0) || 1; save.startLevel = (rawSave.startLevel | 0) || 1; save.lift = (rawSave.lift | 0) % 3;
       if (rawSave.pos && rawSave.pos.pedals && rawSave.pos.steer) save.pos = rawSave.pos;
-      save.swap = !!rawSave.swap; }
+      save.swap = !!rawSave.swap; save.bestScore = rawSave.bestScore | 0; save.snd = rawSave.snd !== false; }
     else { save.best = parseInt(localStorage.getItem('nachtfalke-best') || '0', 10) || 0; }
   } catch (e) {}
   function persist() { try { localStorage.setItem('nachtfalke-save', JSON.stringify(save)); } catch (e) {} }
@@ -1389,6 +1556,9 @@
   }
   showSwap();
   $('swap').addEventListener('click', function () { save.swap = !save.swap; persist(); showSwap(); });
+  function showSnd() { $('snd').textContent = save.snd ? 'An' : 'Aus'; }
+  showSnd();
+  $('snd').addEventListener('click', function () { save.snd = !save.snd; persist(); showSnd(); if (save.snd) { initAudio(); SFX.pick(); } });
   function showLift() {
     rootEl.style.setProperty('--lift', LIFTS[save.lift] + 'px');
     $('lift').textContent = LIFT_NAMES[save.lift];
@@ -1403,6 +1573,7 @@
   var v = 14, pz = 0, vz = 0, passed = 0, level = 1, runStart = 1, shake = 0, overT = 0, totalAtStart = 0, startBiome = 0, miniS = 1;
   var nitro = 1, depleted = false, cool = 0, boost = 0, time = 0, ws = 1, jumpY = 0, menuAngle = 0.9;
   var sk = { active: false, t: 0, cd: 0 };
+  var score = 0, combo = 0, comboT = 0, COMBO_TIME = 3.2, punch = 0, nextIdx = 0, newBest = false, rushOn = false;
 
   /* ---------- Verkehr ---------- */
   function laneFree(c, z, x, margin) {
@@ -1490,7 +1661,8 @@
     document.body.classList.remove('slow');
     traffic.forEach(park);
     pz = 0; vz = 0; v = 14; jumpY = 0; ws = 1; boost = 0;
-    $('g-total').textContent = save.total; $('g-best').textContent = save.best;
+    $('g-total').textContent = save.total; $('g-best').textContent = save.best; $('g-score').textContent = save.bestScore;
+    combo = 0; showCombo(false); hideGems(); $('pops').textContent = '';
     showLvl(); miniS = 1;
     var r = $('g-result');
     if (result) { r.innerHTML = result; r.hidden = false; } else { r.hidden = true; }
@@ -1506,6 +1678,9 @@
     nitro = 1; depleted = false; cool = 0; ws = 1; jumpY = 0;
     sk.active = false; sk.t = 0; sk.cd = 0;
     totalAtStart = save.total;
+    score = 0; combo = 0; comboT = 0; punch = 0; newBest = false; $('score').textContent = '0'; showCombo(false);
+    nextIdx = 0; while (nextIdx < CARS.length && save.total >= CARS[nextIdx].need) nextIdx++;
+    updateNext(); resetGems(); initAudio();
     startBiome = Math.floor(Math.random() * BIOMES.length);
     setBiome(startBiome, true);
     showToast(BIOMES[startBiome].name, 'Stufe ' + level);
@@ -1520,12 +1695,14 @@
     state = 'over'; overT = 1.3; shake = 0.7;
     endSkill(true);
     burst(x, 0.7, z, sparkOrange, 26);
+    SFX.crash(); flash(true); buzz(200); combo = 0; showCombo(false);
     if (passed > save.best) save.best = passed;
+    if (score > save.bestScore) { save.bestScore = score; newBest = score > 0; }
     persist();
   }
   function afterCrash() {
     var fresh = CARS.filter(function (c) { return c.need > totalAtStart && c.need <= save.total; });
-    var msg = 'Crash bei Stufe ' + level + '. <b>' + passed + '</b> überholt.';
+    var msg = 'Crash bei Stufe ' + level + '. <b>' + passed + '</b> überholt, <b>' + score + '</b> Punkte.' + (newBest ? ' Neuer Punkterekord!' : '');
     if (fresh.length) msg += ' Neu freigeschaltet: <b>' + fresh.map(function (c) { return c.name; }).join(', ') + '</b>.';
     else {
       var nxt = CARS.filter(function (c) { return c.need > save.total; })[0];
@@ -1533,31 +1710,66 @@
     }
     openGarage(msg);
   }
-  function countPass() {
+  function mult() { return Math.min(5, 1 + Math.floor(combo / 4)); }
+  function showCombo(bump) {
+    var el = $('combo');
+    if (combo < 2) { el.hidden = true; return; }
+    var m = mult();
+    el.hidden = false;
+    $('combo-x').textContent = combo;
+    $('combo-label').textContent = m > 1 ? 'Serie · Punkte x' + m : 'Serie';
+    if (bump) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+  }
+  function updateNext() {
+    var el = $('next');
+    if (ALL_OPEN || nextIdx >= CARS.length) { el.hidden = true; return; }
+    var need = CARS[nextIdx].need, prev = nextIdx > 0 ? CARS[nextIdx - 1].need : 0;
+    el.hidden = false;
+    $('next-fill').style.width = Math.max(0, Math.min(100, (save.total - prev) / (need - prev) * 100)) + '%';
+    $('next-text').textContent = 'Noch ' + (need - save.total) + ' bis ' + CARS[nextIdx].name;
+  }
+  function countPass(near) {
     var add = has('double') ? 2 : 1;
     passed += add; save.total += add;
     $('passed').textContent = passed;
+    combo++; comboT = COMBO_TIME;
+    var pts = 10 * mult() * add;
+    if (near) {
+      pts += 50;
+      nitro = Math.min(1, nitro + 0.18); if (nitro >= 0.25) depleted = false;
+      pop('Knapp! +' + pts, 'cyan big'); SFX.near(); buzz(20); punch = 1;
+    } else pop('+' + pts, mult() > 1 ? 'gold' : '');
+    SFX.pass(combo);
+    if (combo % 5 === 0) { pop('Serie ' + combo + '!', 'gold big'); SFX.combo(); }
+    showCombo(true);
     var lv = Math.min(20, runStart + Math.floor(passed / 8));
     if (lv > save.maxLevel) save.maxLevel = lv;
-    persist();
     if (lv !== level) {
-      level = lv;
+      level = lv; pts += 100;
       $('level').textContent = 'Stufe ' + level;
       var nb = (startBiome + Math.floor((level - runStart) / 2)) % BIOMES.length;
       if (nb !== biome) { setBiome(nb, false); showToast(BIOMES[nb].name, 'Stufe ' + level); }
       else showToast('Stufe ' + level, null);
+      SFX.level(); flash(false); fireworks();
       var n = activeTarget();
       for (var i = 0; i < traffic.length; i++) {
         if (!traffic[i].active && i < n) place(traffic[i], 220 + Math.random() * 70);
       }
     }
+    score += pts; $('score').textContent = score;
+    while (!ALL_OPEN && nextIdx < CARS.length && save.total >= CARS[nextIdx].need) {
+      showToast('Neues Auto', CARS[nextIdx].name); SFX.unlock(); flash(false); fireworks(); buzz(60);
+      nextIdx++;
+    }
+    updateNext();
+    persist();
   }
 
   /* ---------- Fähigkeiten ---------- */
   function has(x) { return sk.active && D.skill && D.skill.ids.indexOf(x) >= 0; }
   function useSkill() {
     if (state !== 'run' || !D.skill || sk.active || sk.cd > 0) return;
-    sk.active = true; sk.t = 0;
+    sk.active = true; sk.t = 0; SFX.skill(); punch = 0.8;
     var ids = D.skill.ids;
     function on(x) { return ids.indexOf(x) >= 0; }
     if (on('shield')) player.shield.visible = true;
@@ -1680,7 +1892,10 @@
   $('lift').addEventListener('click', function () { save.lift = (save.lift + 1) % 3; persist(); showLift(); });
   $('lvl-up').addEventListener('click', function () { stepLvl(1); });
   window.addEventListener('pagehide', persist);
-  document.addEventListener('visibilitychange', function () { if (document.hidden) persist(); });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) persist();
+    try { if (AC) { if (document.hidden) AC.suspend(); else AC.resume(); } } catch (e) {}
+  });
 
   /* ---------- Kamera ---------- */
   var aspect = 1, lastW = 0, lastH = 0, baseFov = 50;
@@ -1701,6 +1916,7 @@
 
   /* ---------- Schleife ---------- */
   var clock = new THREE.Clock(), lastKmh = -1, lastFill = -1, lastSkill = -1, slowF = 0, frames = 0;
+  var elComboFill = $('combo-fill'), elRush = $('rush');
   var elKmh = $('kmh'), elNitro = $('nitro'), elFill = $('nitro-fill'), elSkillBar = $('skillbar'), elSkillFill = $('skill-fill'), elSkillKey = $('k-skill');
 
   function updateTraffic(dtW) {
@@ -1738,7 +1954,10 @@
       c.x += (c.v - v) * dtW;
       if (c.x > 310) c.x = 310;
       if (state === 'run') {
-        if (!c.behind && c.x < -(c.hl + 2.4)) { c.behind = true; countPass(); }
+        if (!c.behind && c.x < -(c.hl + 2.4)) {
+          c.behind = true;
+          countPass(jumpY < 1 && !has('ghost') && !has('shield') && Math.abs(pz - c.z) < c.hw + 0.78 * miniS + 0.7);
+        }
         else if (c.behind && c.x > c.hl + 3) { c.behind = false; }
         if (c.x < -36) {
           if (i < activeTarget()) place(c, 160 + Math.random() * Math.max(50, 130 - level * 5)); else park(c);
@@ -1805,6 +2024,24 @@
       if (pz > lim) { pz = lim; vz = 0; }
       if (pz < -lim) { pz = -lim; vz = 0; }
       updateTraffic(dtW);
+      for (var gi2 = 0; gi2 < gems.length && state === 'run'; gi2++) {
+        var gm2 = gems[gi2];
+        gm2.x -= v * dtW;
+        if (gm2.x < -25) placeGem(gm2);
+        else if (Math.abs(gm2.x) < 2.6 && Math.abs(gm2.z - pz) < 1.5 && jumpY < 2) {
+          nitro = Math.min(1, nitro + 0.3); if (nitro >= 0.25) depleted = false;
+          var gp = 25 * mult(); score += gp; $('score').textContent = score;
+          pop('Nitro +' + gp, 'cyan'); SFX.pick(); burst(0, 1, pz, sparkCyan, 8); punch = 0.6;
+          placeGem(gm2);
+        }
+        gm2.g.position.set(gm2.x, 1.05 + Math.sin(time * 3 + gi2) * 0.15, gm2.z);
+        gm2.m.rotation.y += dt * 2.5;
+      }
+      if (combo > 0) {
+        comboT -= dt;
+        if (comboT <= 0) { combo = 0; showCombo(false); }
+        else if ((frames & 3) === 0) elComboFill.style.width = Math.round(comboT / COMBO_TIME * 100) + '%';
+      }
     } else if (state === 'menu' || state === 'edit') {
       v = 14; vz = 0; menuAngle += dt * 0.28;
     } else {
@@ -1896,10 +2133,11 @@
         shake -= dt;
         sx = (Math.random() - 0.5) * shake * 0.9; sy = (Math.random() - 0.5) * shake * 0.9;
       }
-      var rumble = boost * 0.03;
+      var rumble = boost * 0.03 + (state === 'run' ? Math.max(0, v / D.top - 0.85) * 0.05 : 0);
       camera.position.set(-9 - boost * 1.6 + sx, 3.5 + jumpY * 0.45 + sy + (Math.random() - 0.5) * rumble, pz * 0.78 + (Math.random() - 0.5) * rumble);
       camera.lookAt(8, 0.7 + jumpY * 0.5, pz * 0.88);
-      camera.fov = Math.min(98, baseFov + boost * 9 + Math.min(1, v / 100) * 5);
+      camera.rotateZ(-vz * 0.005);
+      camera.fov = Math.min(100, baseFov + boost * 9 + Math.min(1, v / 100) * 5 + punch * 4);
     }
     camera.updateProjectionMatrix();
 
@@ -1919,6 +2157,29 @@
         elSkillKey.classList.toggle('live', sk.active);
       }
     }
+
+    /* Effekte: Feuerwerk, Tempolinien, Lichtspuren, Motor */
+    if (punch > 0) punch = Math.max(0, punch - dt * 3.5);
+    for (var fi = 0; fi < fw.length; fi++) {
+      var fp = fw[fi];
+      if (fp.life <= 0) continue;
+      if (fp.wait > 0) { fp.wait -= dt; if (fp.wait <= 0) fp.s.visible = true; continue; }
+      fp.life -= dt;
+      if (fp.life <= 0) { fp.s.visible = false; continue; }
+      var damp = 1 - Math.min(1, dt * 1.4);
+      fp.vx *= damp; fp.vy = fp.vy * damp - 4 * dt; fp.vz *= damp;
+      fp.s.position.x += fp.vx * dt; fp.s.position.y += fp.vy * dt; fp.s.position.z += fp.vz * dt;
+      var fsz = 0.5 + fp.life * 1.1; fp.s.scale.set(fsz, fsz, 1);
+    }
+    var rushO = state === 'run' ? Math.max(0, Math.min(0.2, (v / D.top - 0.8) * 0.8)) + boost * 0.22 : 0;
+    if (rushO > 0.01) {
+      rushOn = true; elRush.style.opacity = rushO.toFixed(2);
+      if (frames & 1) elRush.style.transform = 'rotate(' + Math.floor(Math.random() * 360) + 'deg) scale(2.2)';
+    } else if (rushOn) { rushOn = false; elRush.style.opacity = '0'; }
+    player.trailMat.opacity = state === 'run' || state === 'over'
+      ? Math.min(0.85, Math.max(D.tier >= 4 ? 0.5 : 0, (v - 28) / 70) + boost * 0.3)
+      : (D.tier >= 4 ? 0.6 : 0);
+    engineSound();
 
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
