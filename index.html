@@ -810,11 +810,12 @@
   asphalt.receiveShadow = true;
   scene.add(asphalt);
 
+  var rails = [];
   var railMat = new THREE.MeshStandardMaterial({ color: 0xaab3c2, roughness: 0.3, metalness: 1 });
   [-1, 1].forEach(function (s) {
     [0.72, 0.46].forEach(function (y) {
       var rail = new THREE.Mesh(new THREE.BoxGeometry(560, 0.16, 0.06, 112, 1, 1), railMat);
-      rail.position.set(190, y, s * (HALF + 1.2)); scene.add(rail);
+      rail.position.set(190, y, s * (HALF + 1.2)); scene.add(rail); rails.push([rail, y]);
     });
   });
 
@@ -1006,6 +1007,8 @@
     });
     var roof = new THREE.Mesh(new THREE.BoxGeometry(900, 0.8, ROADW + 7, 150, 1, 1), tunMat);
     roof.position.set(385, 8.2, 0); g.add(roof);
+    var tunFloor = new THREE.Mesh(new THREE.PlaneGeometry(900, ROADW + 7, 150, 1), new THREE.MeshStandardMaterial({ color: 0x15151b, roughness: 1 }));
+    tunFloor.rotation.x = -Math.PI / 2; tunFloor.position.set(385, -0.02, 0); g.add(tunFloor);
     l1 = []; l2 = [];
     for (i = 0; i < 45; i++) { l1.push([-40 + i * 20, 7.7, 0]); l2.push([-40 + i * 20, 0.03, 0, 1.2, 1, 1, -Math.PI / 2]); }
     g.add(instanced(new THREE.BoxGeometry(7, 0.12, 0.7), new THREE.MeshBasicMaterial({ color: 0xfff0c8 }), l1));
@@ -1576,6 +1579,26 @@
       p.m.visible = true; p.life = rnd(1.0, 1.6); used++;
     }
   }
+  /* Straßenplatten für den Einsturz und das Anheben der oberen Welt (das Auto fällt, also steigt alles andere) */
+  var slabs = [], worldUp = 0, falling = false;
+  for (var sl0 = 0; sl0 < 20; sl0++) {
+    var slm = new THREE.Mesh(new THREE.BoxGeometry(15.6, 0.5, ROADW - 0.2), chunkMat);
+    slm.visible = false; scene.add(slm);
+    slabs.push({ m: slm, x: -12 + sl0 * 16, rx: rnd(-0.5, 0.5), rz: rnd(-0.35, 0.35) });
+  }
+  function liftWorld(y) {
+    worldUp = y;
+    ground.position.y = -0.03 + y;
+    rails.forEach(function (r) { r[0].position.y = r[1] + y; });
+    posts.position.y = y; lamps.position.y = y; bridge.position.y = y; gantry.position.y = y;
+    for (var i = 0; i < decos.length; i++) decos[i].position.y = i === 5 ? (y > 0 ? y - 9.5 : 0) : y;
+    asphalt.position.y = y > 0 ? y - 9.5 : 0;
+    if (y > 0) { decos[5].scale.y = 1; decos[5].visible = true; }
+  }
+  function liftReset() {
+    falling = false; liftWorld(0);
+    slabs.forEach(function (o) { o.m.visible = false; });
+  }
   function throwDebris(x, z, side, n) {
     var used = 0;
     for (var i = 0; i < debris.length && used < n; i++) {
@@ -1728,7 +1751,6 @@
   function collapse() {
     collapseT = 0; hitT = Math.max(hitT, 3.4); shake = 0.9; noise(1.2, 0.6, 500); buzz(200);
     pop('Die Straße bricht ein!', 'red big');
-    var f = $('fall'); f.classList.remove('fx'); void f.offsetWidth; f.classList.add('fx');
   }
   function unlocked(i) { return save.total >= CARS[i].need; }
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {}); } catch (e) {}
@@ -1983,7 +2005,7 @@
     traffic.forEach(park);
     pz = 0; vz = 0; v = 14; jumpY = 0; skillJ = 0; rampT = -1; ws = 1; boost = 0;
     $('g-total').textContent = save.total; $('g-best').textContent = save.best; showMode(); $('timer').hidden = true;
-    curveCur = 0; curveTarget = 0; collapseT = -1; dropT = 0; dropY = 0; $('fall').classList.remove('fx'); hole.visible = false;
+    curveCur = 0; curveTarget = 0; collapseT = -1; dropT = 0; dropY = 0; hole.visible = false; liftReset();
     combo = 0; showCombo(false); hideGems(); $('pops').textContent = '';
     damage = 0; hitT = 0; dazeT = 0; document.body.classList.remove('dazed'); closeKeys();
     showLvl(); miniS = 1;
@@ -1996,6 +2018,7 @@
     if (!unlocked(sel) || state !== 'menu') return;
     save.car = sel; persist();
     unzoom(); fitView();
+    liftReset();
     showLvl(); runStart = save.startLevel;
     mode = save.mode; timeLeft = 60; lastTimer = -1; endReason = 'Crash'; $('timer').hidden = mode !== 1;
     curveCur = 0; curveTarget = 0; segLeft = rnd(350, 600); collapseT = -1; dropT = 0; dropY = 0; steerHold = 0;
@@ -2369,6 +2392,7 @@
           }
         }
       }
+      if (worldUp > 0) c.group.position.y = 0.04 + worldUp;
       c.group.position.x = c.x;
       c.group.position.z = c.z;
       for (var w = 0; w < c.wheels.length; w++) c.wheels[w].rotation.z -= c.v * dtW / c.wr;
@@ -2473,7 +2497,7 @@
           if (mode === 1) timeLeft = Math.min(99, timeLeft + 2);
           placeGem(gm2);
         }
-        gm2.g.position.set(gm2.x, 1.05 + Math.sin(time * 3 + gi2) * 0.15, gm2.z);
+        gm2.g.position.set(gm2.x, 1.05 + worldUp + Math.sin(time * 3 + gi2) * 0.15, gm2.z);
         gm2.m.rotation.y += dt * 2.5;
       }
       if (combo > 0) {
@@ -2519,22 +2543,37 @@
     /* Einsturz: erst wackeln, im Dunkeln die Strecke wechseln, dann fällt das Auto in den Tunnel */
     dropY = 0;
     if (collapseT >= 0) {
-      /* 1. Risse und hochfliegende Brocken, ein schwarzes Loch wächst unter dem Auto
-         2. Das Auto bricht ein und versinkt, das Bild wird schwarz
-         3. Im Dunkeln Wechsel in den Tunnel, das Auto stürzt durch die Decke */
+      /* 1. Risse: Brocken fliegen hoch, ein Loch wächst unter dem Auto.
+         2. Die Straße zerbricht in Platten und stürzt mit dem Auto ab. Die obere Welt steigt nach oben weg,
+            von unten kommt der Tunnel herauf. Kein Schnitt, kein schwarzes Bild.
+         3. Landung im Tunnel. */
       collapseT += dt;
-      hole.visible = true; hole.position.set(0.3, 0.02, pz);
-      var hs = Math.min(1, collapseT / 0.6) * 8; hole.scale.set(hs, hs * 0.75, 1);
       if (collapseT < 0.6) {
+        hole.visible = true; hole.position.set(0.3, 0.02, pz);
+        var hs = collapseT / 0.6 * 8; hole.scale.set(hs, hs * 0.75, 1);
         shake = Math.max(shake, 0.55);
         if ((totalFrames & 3) === 0) chunks(2, 0, true);
-      } else if (collapseT < 1.25) {
-        var sk2k = (collapseT - 0.6) / 0.65; dropY = -4.5 * sk2k * sk2k; shake = Math.max(shake, 0.3);
+      } else if (state !== 'run') {
+        collapseT = -1; hole.visible = false; liftReset();
       } else {
-        collapseT = -1; hole.visible = false;
-        if (state === 'run') {
-          setBiome(5, true); resetTraffic(); resetGems(); dropT = 1.0; curveTarget = 0; curveCur = 0; segLeft = 300;
-          chunks(10, 7.5, false);
+        var ft = collapseT - 0.6, FALL = 1.15;
+        if (!falling) { falling = true; hole.visible = false; slabs.forEach(function (o) { o.m.visible = true; }); }
+        var fk = Math.min(1, ft / FALL);
+        liftWorld(9.5 * fk * fk);
+        for (var sli = 0; sli < slabs.length; sli++) {
+          var so = slabs[sli], sk3 = Math.min(1, Math.max(0, ft - Math.max(0, sli - 1) * 0.03) / FALL);
+          /* Die Platten unter dem Auto fallen mit, die weiter vorn kippen und bleiben zurück */
+          var lag = sli < 2 ? 1 : 0.72;
+          so.m.position.set(so.x, -0.27 + worldUp - 9.5 * sk3 * sk3 * lag, 0);
+          so.m.rotation.set(sli < 2 ? 0 : so.rx * sk3 * 1.6, 0, sli < 2 ? 0 : so.rz * sk3 * 1.6);
+        }
+        shake = Math.max(shake, 0.3);
+        if ((totalFrames & 7) === 0) chunks(1, 6, false);
+        if (fk >= 1) {
+          collapseT = -1;
+          setBiome(5, true); liftReset(); resetTraffic(); resetGems();
+          curveTarget = 0; curveCur = 0; segLeft = 300;
+          shake = 0.6; burst(0, 0.3, pz, sparkOrange, 12); noise(0.35, 0.6, 900); chunks(8, 7.5, false); buzz(80);
         }
       }
     }
