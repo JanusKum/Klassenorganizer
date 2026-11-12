@@ -142,8 +142,8 @@
   }
   .timer.low { color: var(--danger); }
   .fall { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; opacity: 0; background: #000000; }
-  .fall.fx { animation: fall 1.5s ease-in-out; }
-  @keyframes fall { 0% { opacity: 0; } 32% { opacity: 1; } 50% { opacity: 1; } 100% { opacity: 0; } }
+  .fall.fx { animation: fall 2.1s ease-in-out; }
+  @keyframes fall { 0% { opacity: 0; } 30% { opacity: 0; } 56% { opacity: 1; } 66% { opacity: 1; } 100% { opacity: 0; } }
   .lvl { display: flex; align-items: center; justify-content: space-between; gap: 8px; font: 700 18px var(--display); letter-spacing: 0.06em; text-transform: uppercase; }
   .lvl button { flex: 0 0 46px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--fg); font-size: 14px; cursor: pointer; }
   .err { position: absolute; top: 4px; left: 8px; right: 8px; text-align: center; font-size: 12px; color: var(--danger); pointer-events: none; }
@@ -1553,9 +1553,28 @@
 
   /* ---------- Schaden: Trümmer und Rauch ---------- */
   var debris = [], debrisGeo = new THREE.BoxGeometry(0.34, 0.08, 0.24);
-  for (var db0 = 0; db0 < 14; db0++) {
+  for (var db0 = 0; db0 < 30; db0++) {
     var dbm = new THREE.Mesh(debrisGeo, dark); dbm.visible = false; scene.add(dbm);
     debris.push({ m: dbm, life: 0, vx: 0, vy: 0, vz: 0, y: 0 });
+  }
+  var chunkMat = new THREE.MeshStandardMaterial({ color: 0x30333c, roughness: 0.95, map: noiseTex });
+  var holeMat = new THREE.MeshBasicMaterial({ map: blobTex, color: 0x000000, transparent: true, opacity: 1, depthWrite: false,
+    polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
+  var hole = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), holeMat);
+  hole.rotation.x = -Math.PI / 2; hole.position.y = 0.02; hole.visible = false; scene.add(hole);
+  /* Asphaltbrocken: von unten hochgesprengt oder von der Tunneldecke fallend */
+  function chunks(n, y0, up) {
+    var used = 0;
+    for (var i = 0; i < debris.length && used < n; i++) {
+      var p = debris[i];
+      if (p.life > 0) continue;
+      p.m.material = chunkMat;
+      p.y = y0 + rnd(0, 1);
+      p.m.position.set(rnd(-3, 5), p.y, pz + rnd(-2.2, 2.2));
+      var sc = rnd(1.5, 4); p.m.scale.set(sc, sc * rnd(1.2, 2.5), sc);
+      p.vx = rnd(-2, 3); p.vy = up ? rnd(4, 9) : -rnd(1, 4); p.vz = rnd(-3, 3);
+      p.m.visible = true; p.life = rnd(1.0, 1.6); used++;
+    }
   }
   function throwDebris(x, z, side, n) {
     var used = 0;
@@ -1707,7 +1726,7 @@
   }
   /* Einsturz: Die Straße bricht weg, das Auto fällt in einen Tunnel */
   function collapse() {
-    collapseT = 0; hitT = Math.max(hitT, 2.8); shake = 0.9; noise(1.2, 0.6, 500); buzz(200);
+    collapseT = 0; hitT = Math.max(hitT, 3.4); shake = 0.9; noise(1.2, 0.6, 500); buzz(200);
     pop('Die Straße bricht ein!', 'red big');
     var f = $('fall'); f.classList.remove('fx'); void f.offsetWidth; f.classList.add('fx');
   }
@@ -1964,7 +1983,7 @@
     traffic.forEach(park);
     pz = 0; vz = 0; v = 14; jumpY = 0; skillJ = 0; rampT = -1; ws = 1; boost = 0;
     $('g-total').textContent = save.total; $('g-best').textContent = save.best; showMode(); $('timer').hidden = true;
-    curveCur = 0; curveTarget = 0; collapseT = -1; dropT = 0; dropY = 0; $('fall').classList.remove('fx');
+    curveCur = 0; curveTarget = 0; collapseT = -1; dropT = 0; dropY = 0; $('fall').classList.remove('fx'); hole.visible = false;
     combo = 0; showCombo(false); hideGems(); $('pops').textContent = '';
     damage = 0; hitT = 0; dazeT = 0; document.body.classList.remove('dazed'); closeKeys();
     showLvl(); miniS = 1;
@@ -2063,7 +2082,7 @@
       level = lv; pts += 100;
       $('level').textContent = 'Stufe ' + level;
       /* Alle zwei Stufen eine neue Strecke; jede dritte davon ist der Einsturz in den Tunnel */
-      var steps = Math.floor((level - runStart) / 2), nb = steps % 3 === 2 ? 5 : (startBiome + steps - Math.floor((steps + 1) / 3)) % 5;
+      var steps = Math.floor((level - runStart) / 4), nb = steps % 3 === 2 ? 5 : (startBiome + steps - Math.floor((steps + 1) / 3)) % 5;
       if (nb === biome) showToast('Stufe ' + level, null);
       else if (nb === 5) { collapse(); showToast('Einsturz', 'Stufe ' + level); }
       else if (biome === 5) { setBiome(nb, true); flash('hit'); showToast(BIOMES[nb].name, 'Zurück an der Oberfläche'); }
@@ -2498,19 +2517,31 @@
     totalFrames++;
     if (totalFrames % 120 === 30) bendCheck();
     /* Einsturz: erst wackeln, im Dunkeln die Strecke wechseln, dann fällt das Auto in den Tunnel */
+    dropY = 0;
     if (collapseT >= 0) {
+      /* 1. Risse und hochfliegende Brocken, ein schwarzes Loch wächst unter dem Auto
+         2. Das Auto bricht ein und versinkt, das Bild wird schwarz
+         3. Im Dunkeln Wechsel in den Tunnel, das Auto stürzt durch die Decke */
       collapseT += dt;
-      if (collapseT < 0.55) shake = Math.max(shake, 0.5);
-      else {
-        collapseT = -1;
-        if (state === 'run') { setBiome(5, true); resetTraffic(); resetGems(); dropT = 0.9; curveTarget = 0; curveCur = 0; segLeft = 300; }
+      hole.visible = true; hole.position.set(0.3, 0.02, pz);
+      var hs = Math.min(1, collapseT / 0.6) * 8; hole.scale.set(hs, hs * 0.75, 1);
+      if (collapseT < 0.6) {
+        shake = Math.max(shake, 0.55);
+        if ((totalFrames & 3) === 0) chunks(2, 0, true);
+      } else if (collapseT < 1.25) {
+        var sk2k = (collapseT - 0.6) / 0.65; dropY = -4.5 * sk2k * sk2k; shake = Math.max(shake, 0.3);
+      } else {
+        collapseT = -1; hole.visible = false;
+        if (state === 'run') {
+          setBiome(5, true); resetTraffic(); resetGems(); dropT = 1.0; curveTarget = 0; curveCur = 0; segLeft = 300;
+          chunks(10, 7.5, false);
+        }
       }
     }
-    dropY = 0;
     if (dropT > 0) {
       dropT -= dt;
       if (dropT <= 0) { dropT = 0; shake = 0.5; burst(0, 0.3, pz, sparkOrange, 10); noise(0.3, 0.5, 900); }
-      else { var dr = 1 - dropT / 0.9; dropY = 9 * (1 - dr * dr); }
+      else { var dr = 1 - dropT / 1.0; dropY = 9.5 * (1 - dr * dr); }
     }
     blendBiome(dt);
 
@@ -2576,7 +2607,7 @@
       }
       var rumble = boost * 0.03 + (state === 'run' ? Math.max(0, v / D.top - 0.85) * 0.05 : 0);
       camera.position.set(-9 - boost * 1.6 + sx, 3.5 + jumpY * 0.45 + sy + (Math.random() - 0.5) * rumble, pz * 0.78 + (Math.random() - 0.5) * rumble);
-      camera.lookAt(8, 0.7 + jumpY * 0.5, pz * 0.88);
+      camera.lookAt(8, 0.7 + jumpY * 0.5 + Math.min(0, dropY) * 0.6, pz * 0.88);
       camera.rotateZ(-vz * 0.005 - curveCur * 0.035);
       camera.fov = Math.min(100, baseFov + boost * 9 + Math.min(1, v / 100) * 5 + punch * 4);
     }
