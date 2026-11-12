@@ -2471,7 +2471,7 @@
         } else segLeft = 300;
       }
       curveCur += (curveTarget - curveCur) * Math.min(1, dtW * 0.8);
-      pz -= curveCur * Math.min(1.5, (v / 55) * (v / 55)) * 2.8 * dtW;
+      /* In Kurven hält das Auto seine Spur von selbst, es gibt keine Fliehkraft mehr */
       var lim = HALF - 1.05;
       if (pz > lim) { pz = lim; vz = 0; }
       if (pz < -lim) { pz = -lim; vz = 0; }
