@@ -143,6 +143,33 @@
   .timer.low { color: var(--danger); }
   .clip { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 30; background: #000000; display: grid; place-items: center; }
   .clip video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; background: #000000; }
+  /* ---------- Karten-Drops ---------- */
+  .drop {
+    position: fixed; z-index: 12; right: max(14px, env(safe-area-inset-right, 0px)); top: calc(var(--vvt, 0px) + var(--vvh, 100vh) * 0.3);
+    width: clamp(118px, 30vmin, 210px); pointer-events: none; text-align: center; --rc: #4fa3ff;
+  }
+  .drop.fx { animation: dropin 2.7s cubic-bezier(.2, .9, .3, 1.2) forwards; }
+  .drop.big.fx { animation-duration: 3.4s; }
+  @keyframes dropin {
+    0% { opacity: 0; transform: translateX(120%) rotate(12deg) scale(0.7); }
+    12% { opacity: 1; transform: translateX(0) rotate(-4deg) scale(1.06); }
+    18% { transform: rotate(0deg) scale(1); }
+    85% { opacity: 1; transform: rotate(0deg) scale(1); }
+    100% { opacity: 0; transform: translateX(120%) rotate(8deg) scale(0.9); }
+  }
+  .drop .cardf {
+    position: relative; aspect-ratio: 3 / 4; max-width: 100%; border-radius: 14px; overflow: hidden; background: #0d1018;
+    border: 3px solid var(--rc); box-shadow: 0 0 22px var(--rc), 0 8px 24px rgba(0, 0, 0, 0.6);
+  }
+  .drop .cardf img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+  .drop .cardf::after {
+    content: ""; position: absolute; top: -40%; left: -60%; width: 50%; height: 180%; transform: rotate(20deg);
+    background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.45), rgba(255,255,255,0)); animation: shine 1.4s ease-out 0.3s;
+  }
+  @keyframes shine { 0% { left: -60%; } 100% { left: 130%; } }
+  .drop .rar { margin-top: 6px; font: 700 clamp(15px, 4vmin, 20px) var(--display); letter-spacing: 0.1em; text-transform: uppercase; color: var(--rc); text-shadow: 0 0 12px var(--rc), 0 2px 6px rgba(0,0,0,0.8); }
+  .drop .nm { font: 500 13px var(--display); letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg); text-shadow: 0 2px 6px rgba(0,0,0,0.9); }
+  .drop .new { position: absolute; top: 6px; left: 6px; z-index: 1; padding: 2px 7px; border-radius: 6px; background: var(--rc); color: #0b0d12; font: 700 12px var(--display); letter-spacing: 0.08em; }
   .clip.broken { background: transparent; }
   .clip.broken video, .clip.broken button, .clip.broken .clip-info { visibility: hidden; }
   .clip-info { position: absolute; left: 0; right: 0; top: 50%; text-align: center; color: #ffffff; font: 700 18px var(--display); letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.8; }
@@ -333,6 +360,7 @@
 <div id="flash" class="flash"></div>
 <div id="daze" class="daze"></div>
 <div id="fall" class="fall"></div>
+<div id="drop" class="drop" hidden><div class="cardf"><span id="drop-new" class="new" hidden>Neu</span><img id="drop-img" alt=""></div><div id="drop-rar" class="rar">Rare</div><div id="drop-nm" class="nm"></div></div>
 <canvas id="shard" class="shard" hidden></canvas>
 <div id="clip" class="clip" hidden><video id="clip-v" playsinline webkit-playsinline preload="auto"></video><div id="clip-info" class="clip-info">Lädt …</div><button id="clip-play" class="clip-play" type="button" hidden>&#9654; Clip abspielen</button><button id="clip-skip" type="button">Überspringen</button></div>
 <div id="timer" class="timer" hidden>60</div>
@@ -359,6 +387,7 @@
   <header class="g-top">
     <h1>Nacht<span>falke</span></h1>
     <p><b id="g-total">0</b> insgesamt überholt · Rekord <b id="g-best">0</b> · Bestpunkte <b id="g-score">0</b> · Rang <b id="g-rank">keiner</b></p>
+    <p>Kartensammlung <b id="g-cards">0/10</b></p>
     <p class="founders">Founders <b>Janus</b> × <b>Philipp</b></p>
     <p id="g-result" class="g-result" hidden></p>
   </header>
@@ -1749,6 +1778,130 @@
     pop(damage === 2 ? 'Noch ein Treffer = Crash' : 'Schaden', 'red big');
   }
 
+  /* ---------- Karten-Drops: nach jedem sechsten Überholen und jeder neuen Stufe ---------- */
+  var RARITIES = [
+    { name: 'Rare', color: '#4fa3ff', w: 44 },
+    { name: 'Super Rare', color: '#a46bff', w: 26 },
+    { name: 'Episch', color: '#ff4fd8', w: 17 },
+    { name: 'Mythisch', color: '#ff4a36', w: 9 },
+    { name: 'Legendär', color: '#ffc03a', w: 4 }
+  ];
+  var CARDS_DEF = [
+    { id: 'pokal', name: 'Pokal', r: 0 }, { id: 'reifen', name: 'Reifen', r: 0 }, { id: 'blitz', name: 'Blitz', r: 0 },
+    { id: 'turbo', name: 'Turbo', r: 1 }, { id: 'flamme', name: 'Flamme', r: 1 },
+    { id: 'cowboy', name: 'Der Cowboy', r: 2, img: 'card-cowboy.jpg', w: 3 }, { id: 'rakete', name: 'Rakete', r: 2 },
+    { id: 'krone', name: 'Krone', r: 3 }, { id: 'diamant', name: 'Diamant', r: 3 },
+    { id: 'falke', name: 'Goldener Falke', r: 4 }
+  ];
+  function drawCard(id, col) {
+    var c = document.createElement('canvas'); c.width = 300; c.height = 400;
+    var g = c.getContext('2d'), cx = 150, cy = 190;
+    var bg = g.createRadialGradient(cx, cy, 10, cx, cy, 260);
+    bg.addColorStop(0, col); bg.addColorStop(0.45, '#1a1d2a'); bg.addColorStop(1, '#07080d');
+    g.fillStyle = bg; g.fillRect(0, 0, 300, 400);
+    g.globalAlpha = 0.18; g.strokeStyle = col; g.lineWidth = 2;
+    for (var k = 0; k < 18; k++) { var a = k / 18 * Math.PI * 2; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(a) * 300, cy + Math.sin(a) * 300); g.stroke(); }
+    g.globalAlpha = 1; g.lineJoin = 'round'; g.lineCap = 'round';
+    function gold(y0, y1) { var l = g.createLinearGradient(0, y0, 0, y1); l.addColorStop(0, '#fff2b0'); l.addColorStop(0.5, '#ffc03a'); l.addColorStop(1, '#b06a10'); return l; }
+    g.shadowColor = 'rgba(0,0,0,0.6)'; g.shadowBlur = 18; g.shadowOffsetY = 8;
+    if (id === 'pokal') {
+      g.fillStyle = gold(90, 300);
+      g.beginPath(); g.moveTo(90, 100); g.lineTo(210, 100); g.quadraticCurveTo(210, 220, 150, 230); g.quadraticCurveTo(90, 220, 90, 100); g.fill();
+      g.lineWidth = 12; g.strokeStyle = '#ffc03a';
+      g.beginPath(); g.arc(90, 140, 30, Math.PI * 0.5, Math.PI * 1.5); g.stroke(); g.beginPath(); g.arc(210, 140, 30, -Math.PI * 0.5, Math.PI * 0.5); g.stroke();
+      g.fillRect(138, 228, 24, 40); g.fillRect(100, 268, 100, 26);
+    } else if (id === 'reifen') {
+      g.fillStyle = '#111'; g.beginPath(); g.arc(cx, cy, 100, 0, Math.PI * 2); g.fill();
+      g.shadowBlur = 0; g.strokeStyle = '#2b2b2b'; g.lineWidth = 10;
+      for (var t = 0; t < 24; t++) { var ta = t / 24 * Math.PI * 2; g.beginPath(); g.moveTo(cx + Math.cos(ta) * 82, cy + Math.sin(ta) * 82); g.lineTo(cx + Math.cos(ta + 0.12) * 98, cy + Math.sin(ta + 0.12) * 98); g.stroke(); }
+      g.fillStyle = '#c9d0da'; g.beginPath(); g.arc(cx, cy, 58, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = '#555'; g.lineWidth = 12; for (var sp = 0; sp < 5; sp++) { var sa = sp / 5 * Math.PI * 2; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(sa) * 52, cy + Math.sin(sa) * 52); g.stroke(); }
+      g.fillStyle = col; g.beginPath(); g.arc(cx, cy, 14, 0, Math.PI * 2); g.fill();
+    } else if (id === 'blitz') {
+      g.fillStyle = gold(60, 330); g.beginPath();
+      g.moveTo(175, 50); g.lineTo(85, 205); g.lineTo(145, 205); g.lineTo(115, 335); g.lineTo(220, 165); g.lineTo(158, 165); g.lineTo(200, 50); g.closePath(); g.fill();
+    } else if (id === 'turbo') {
+      g.fillStyle = '#9aa3b0'; g.beginPath(); g.arc(cx, cy, 105, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#2a2e38'; g.beginPath(); g.arc(cx, cy, 88, 0, Math.PI * 2); g.fill();
+      g.fillStyle = col; for (var bl = 0; bl < 9; bl++) { g.save(); g.translate(cx, cy); g.rotate(bl / 9 * Math.PI * 2);
+        g.beginPath(); g.moveTo(0, -12); g.quadraticCurveTo(50, -40, 82, -10); g.quadraticCurveTo(50, -10, 0, 12); g.fill(); g.restore(); }
+      g.fillStyle = '#dfe5ec'; g.beginPath(); g.arc(cx, cy, 18, 0, Math.PI * 2); g.fill();
+    } else if (id === 'flamme') {
+      [['#ff3a10', 1], ['#ff9a1a', 0.72], ['#fff0a0', 0.42]].forEach(function (f) {
+        var s = f[1]; g.fillStyle = f[0]; g.beginPath();
+        g.moveTo(cx, cy - 150 * s); g.bezierCurveTo(cx + 40 * s, cy - 70 * s, cx + 115 * s, cy - 20 * s, cx + 90 * s, cy + 70 * s);
+        g.bezierCurveTo(cx + 70 * s, cy + 140 * s, cx - 70 * s, cy + 140 * s, cx - 90 * s, cy + 70 * s);
+        g.bezierCurveTo(cx - 110 * s, cy - 10 * s, cx - 20 * s, cy - 40 * s, cx, cy - 150 * s); g.fill(); g.shadowBlur = 0;
+      });
+    } else if (id === 'rakete') {
+      g.save(); g.translate(cx, cy); g.rotate(0.6);
+      g.fillStyle = '#ff9a1a'; g.beginPath(); g.moveTo(-26, 85); g.quadraticCurveTo(0, 170, 26, 85); g.fill();
+      g.fillStyle = '#e8ebf0'; g.beginPath(); g.moveTo(0, -130); g.bezierCurveTo(55, -70, 45, 40, 32, 90); g.lineTo(-32, 90); g.bezierCurveTo(-45, 40, -55, -70, 0, -130); g.fill();
+      g.fillStyle = col; g.beginPath(); g.moveTo(-32, 40); g.lineTo(-70, 100); g.lineTo(-32, 90); g.fill(); g.beginPath(); g.moveTo(32, 40); g.lineTo(70, 100); g.lineTo(32, 90); g.fill();
+      g.fillStyle = '#2a6bff'; g.beginPath(); g.arc(0, -40, 20, 0, Math.PI * 2); g.fill(); g.restore();
+    } else if (id === 'krone') {
+      g.fillStyle = gold(90, 280); g.beginPath();
+      g.moveTo(60, 270); g.lineTo(60, 120); g.lineTo(105, 180); g.lineTo(150, 95); g.lineTo(195, 180); g.lineTo(240, 120); g.lineTo(240, 270); g.closePath(); g.fill();
+      g.shadowBlur = 0; [[150, 225, '#ff3a5a'], [100, 230, '#3ad0ff'], [200, 230, '#5aff8a']].forEach(function (j) { g.fillStyle = j[2]; g.beginPath(); g.arc(j[0], j[1], 13, 0, Math.PI * 2); g.fill(); });
+      [[60, 112], [150, 87], [240, 112]].forEach(function (j) { g.fillStyle = '#fff2b0'; g.beginPath(); g.arc(j[0], j[1], 10, 0, Math.PI * 2); g.fill(); });
+    } else if (id === 'diamant') {
+      var top = 110, mid = 160, bot = 300;
+      g.fillStyle = '#bff3ff'; g.beginPath(); g.moveTo(90, top); g.lineTo(210, top); g.lineTo(250, mid); g.lineTo(cx, bot); g.lineTo(50, mid); g.closePath(); g.fill();
+      g.shadowBlur = 0; g.fillStyle = 'rgba(80,180,255,0.55)'; g.beginPath(); g.moveTo(50, mid); g.lineTo(250, mid); g.lineTo(cx, bot); g.closePath(); g.fill();
+      g.strokeStyle = 'rgba(255,255,255,0.8)'; g.lineWidth = 3; g.beginPath(); g.moveTo(90, top); g.lineTo(115, mid); g.lineTo(cx, bot); g.lineTo(185, mid); g.lineTo(210, top); g.moveTo(115, mid); g.lineTo(cx, top); g.lineTo(185, mid); g.stroke();
+    } else if (id === 'falke') {
+      g.fillStyle = gold(100, 300); g.beginPath();
+      g.moveTo(40, 250); g.lineTo(70, 200); g.quadraticCurveTo(80, 150, 125, 140); g.lineTo(160, 140); g.quadraticCurveTo(210, 145, 240, 195); g.lineTo(262, 205);
+      g.lineTo(262, 250); g.closePath(); g.fill();
+      g.shadowBlur = 0; g.fillStyle = '#1a1206';
+      g.beginPath(); g.moveTo(120, 152); g.lineTo(160, 152); g.quadraticCurveTo(195, 158, 215, 192); g.lineTo(105, 192); g.quadraticCurveTo(108, 165, 120, 152); g.fill();
+      [[90, 252], [220, 252]].forEach(function (w) { g.fillStyle = '#111'; g.beginPath(); g.arc(w[0], w[1], 26, 0, Math.PI * 2); g.fill(); g.fillStyle = '#ffc03a'; g.beginPath(); g.arc(w[0], w[1], 12, 0, Math.PI * 2); g.fill(); });
+      g.fillStyle = '#fff2b0'; g.font = 'bold 40px sans-serif'; g.textAlign = 'center'; g.fillText('★', cx, 95);
+    }
+    return c.toDataURL('image/jpeg', 0.85);
+  }
+  var cardArt = {}, dropQ = [], dropBusy = false;
+  function cardSrc(cd) {
+    if (cd.img) return cd.img;
+    if (!cardArt[cd.id]) cardArt[cd.id] = drawCard(cd.id, RARITIES[cd.r].color);
+    return cardArt[cd.id];
+  }
+  function rollCard() {
+    var total = 0, i;
+    RARITIES.forEach(function (r) { total += r.w; });
+    var x = Math.random() * total, ri = 0;
+    for (i = 0; i < RARITIES.length; i++) { x -= RARITIES[i].w; if (x < 0) { ri = i; break; } }
+    var pool = CARDS_DEF.filter(function (c) { return c.r === ri; }), pw = 0;
+    pool.forEach(function (c) { pw += c.w || 1; });
+    var y = Math.random() * pw;
+    for (i = 0; i < pool.length; i++) { y -= pool[i].w || 1; if (y < 0) return pool[i]; }
+    return pool[0];
+  }
+  function showCardCount() {
+    var have = CARDS_DEF.filter(function (c) { return (save.cards[c.id] | 0) > 0; }).length;
+    $('g-cards').textContent = have + '/' + CARDS_DEF.length;
+  }
+  function dropCard() {
+    if (dropBusy) { if (dropQ.length < 2) dropQ.push(1); return; }
+    var cd = rollCard(), rar = RARITIES[cd.r], el = $('drop'), isNew = !(save.cards[cd.id] | 0);
+    save.cards[cd.id] = (save.cards[cd.id] | 0) + 1; persist();
+    dropBusy = true;
+    el.style.setProperty('--rc', rar.color);
+    $('drop-img').src = cardSrc(cd);
+    $('drop-rar').textContent = rar.name;
+    $('drop-nm').textContent = cd.name;
+    $('drop-new').hidden = !isNew;
+    el.classList.toggle('big', cd.r >= 3);
+    el.hidden = false; el.classList.remove('fx'); void el.offsetWidth; el.classList.add('fx');
+    var notes = [[659, 880], [659, 880, 1047], [523, 784, 1047, 1319], [523, 659, 784, 1047, 1319], [392, 523, 659, 784, 1047, 1319, 1568]][cd.r];
+    notes.forEach(function (f, k) { tone(f, 0.22, cd.r >= 3 ? 'square' : 'triangle', 0.1, k * 0.07); });
+    if (cd.r >= 3) { flash(false); fireworks(); buzz(80); }
+    setTimeout(function () {
+      el.hidden = true; el.classList.remove('fx'); dropBusy = false;
+      if (dropQ.length) { dropQ.shift(); setTimeout(dropCard, 250); }
+    }, cd.r >= 3 ? 3450 : 2750);
+  }
+
   /* ---------- Feuerwerk ---------- */
   var fw = [], fwMats = [glowMat(0xffc040, 1), glowMat(0xff5ad0, 1), glowMat(0x4fd8ff, 1), glowMat(0x9dff4a, 1)];
   for (var fw0 = 0; fw0 < 60; fw0++) {
@@ -1790,6 +1943,7 @@
       save.swap = !!rawSave.swap; save.bestScore = rawSave.bestScore | 0; save.snd = rawSave.snd !== false;
       if (Array.isArray(rawSave.bests)) save.bests = [rawSave.bests[0] | 0, rawSave.bests[1] | 0, rawSave.bests[2] | 0, rawSave.bests[3] | 0];
       save.mode = ((rawSave.mode | 0) % 4 + 4) % 4;
+      if (rawSave.cards && typeof rawSave.cards === 'object') save.cards = rawSave.cards;
       if (rawSave.keys && typeof rawSave.keys === 'object') {
         var keysOk = true;
         for (var ka in DEF_KEYS) if (typeof rawSave.keys[ka] !== 'string') keysOk = false;
@@ -1800,6 +1954,7 @@
   function persist() { try { localStorage.setItem('nachtfalke-save', JSON.stringify(save)); } catch (e) {} }
   if (!save.bests) save.bests = [save.bestScore | 0, 0, 0, 0];
   if (!save.mode) save.mode = 0;
+  if (!save.cards || typeof save.cards !== 'object') save.cards = {};
 
   /* ---------- Modi und Ränge ---------- */
   var MODES = [
@@ -2090,7 +2245,7 @@
     document.body.classList.remove('slow');
     traffic.forEach(park);
     pz = 0; vz = 0; v = 14; jumpY = 0; skillJ = 0; rampT = -1; ws = 1; boost = 0;
-    $('g-total').textContent = save.total; $('g-best').textContent = save.best; showMode(); $('timer').hidden = true;
+    $('g-total').textContent = save.total; $('g-best').textContent = save.best; showMode(); showCardCount(); $('timer').hidden = true;
     curveCur = 0; curveTarget = 0; collapseT = -1; dropT = 0; dropY = 0; hole.visible = false; liftReset();
     combo = 0; showCombo(false); hideGems(); $('pops').textContent = '';
     damage = 0; hitT = 0; dazeT = 0; document.body.classList.remove('dazed'); closeKeys();
@@ -2343,7 +2498,9 @@
     showCombo(true);
     var lv = Math.min(20, runStart + Math.floor(passed / 8));
     if (lv > save.maxLevel) save.maxLevel = lv;
+    var gotDrop = passed % 6 === 0 || (add === 2 && passed % 6 === 1);
     if (lv !== level) {
+      gotDrop = true;
       level = lv; pts += 100;
       $('level').textContent = 'Stufe ' + level;
       /* Alle zwei Stufen eine neue Strecke; jede dritte davon ist der Einsturz in den Tunnel */
@@ -2367,6 +2524,7 @@
     }
     updateNext();
     persist();
+    if (gotDrop) dropCard();
   }
 
   /* ---------- Fähigkeiten ---------- */
