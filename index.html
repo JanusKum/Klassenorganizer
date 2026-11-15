@@ -1482,10 +1482,36 @@
       master = AC.createGain(); master.gain.value = 0.5; master.connect(AC.destination);
       noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
       var d = noiseBuf.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-      var o1 = AC.createOscillator(), o2 = AC.createOscillator(), f = AC.createBiquadFilter(), g = AC.createGain();
-      o1.type = 'sawtooth'; o2.type = 'square'; f.type = 'lowpass'; f.frequency.value = 400; g.gain.value = 0;
-      o1.connect(f); o2.connect(f); f.connect(g); g.connect(master); o1.start(); o2.start();
-      eng = { o1: o1, o2: o2, f: f, g: g };
+      /* Motor: V8-artiger Klang aus Obertönen der Zündfrequenz, leicht verzerrt, Filter folgt Drehzahl und Gas */
+      var real = new Float32Array(40), imag = new Float32Array(40);
+      for (var hk = 1; hk < 40; hk++) {
+        var amp = 1 / Math.pow(hk, 0.85) * (hk % 2 ? 1 : 0.55) * (hk === 2 ? 1.6 : 1) * (hk === 4 ? 1.3 : 1);
+        var ph = (hk * 2.3) % (Math.PI * 2);
+        real[hk] = amp * Math.cos(ph); imag[hk] = amp * Math.sin(ph);
+      }
+      var wave = AC.createPeriodicWave(real, imag);
+      function osc(type) { var o = AC.createOscillator(); if (type) o.type = type; else o.setPeriodicWave(wave); o.start(); return o; }
+      var o1 = osc(), o2 = osc(), sub = osc('triangle');
+      var mix = AC.createGain(); mix.gain.value = 0.5;
+      var subG = AC.createGain(); subG.gain.value = 0.6;
+      o1.connect(mix); o2.connect(mix); sub.connect(subG); subG.connect(mix);
+      var shaper = AC.createWaveShaper(), curve = new Float32Array(1024);
+      for (var ci = 0; ci < 1024; ci++) { var xx = ci / 511.5 - 1; curve[ci] = Math.tanh(2.6 * xx); }
+      shaper.curve = curve; shaper.oversample = '2x';
+      var lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 600; lp.Q.value = 0.9;
+      var body = AC.createGain(); body.gain.value = 0;
+      /* Brummen: schnelle Lautstärkeschwankung wie bei echten Zündungen */
+      var rum = AC.createOscillator(), rumG = AC.createGain(); rum.frequency.value = 20; rumG.gain.value = 0.25; rum.connect(rumG); rum.start();
+      var amG = AC.createGain(); amG.gain.value = 0.75; rumG.connect(amG.gain);
+      mix.connect(shaper); shaper.connect(lp); lp.connect(amG); amG.connect(body); body.connect(master);
+      function noiseSrc() { var n = AC.createBufferSource(); n.buffer = noiseBuf; n.loop = true; n.start(); return n; }
+      var intakeF = AC.createBiquadFilter(), intakeG = AC.createGain();
+      intakeF.type = 'bandpass'; intakeF.Q.value = 1.4; intakeG.gain.value = 0;
+      noiseSrc().connect(intakeF); intakeF.connect(intakeG); intakeG.connect(master);
+      var turbo = osc('sine'), turboG = AC.createGain(); turboG.gain.value = 0; turbo.connect(turboG); turboG.connect(master);
+      var windF = AC.createBiquadFilter(), windG = AC.createGain(); windF.type = 'lowpass'; windF.frequency.value = 500; windG.gain.value = 0;
+      noiseSrc().connect(windF); windF.connect(windG); windG.connect(master);
+      eng = { o1: o1, o2: o2, sub: sub, lp: lp, body: body, rum: rum, intakeF: intakeF, intakeG: intakeG, turbo: turbo, turboG: turboG, windF: windF, windG: windG };
       var n = AC.createBufferSource(), nf = AC.createBiquadFilter();
       n.buffer = noiseBuf; n.loop = true; nf.type = 'bandpass'; nf.frequency.value = 1800; nf.Q.value = 0.7;
       nitroG = AC.createGain(); nitroG.gain.value = 0;
@@ -1525,14 +1551,57 @@
     hit: function () { noise(0.4, 0.6, 1800); tone(90, 0.3, 'sine', 0.4, 0, 45); tone(3200, 1.2, 'sine', 0.035); }
   };
   function buzz(ms) { try { if (audioOn() && navigator.vibrate) navigator.vibrate(ms); } catch (e) {} }
+  /* Drehzahl mit acht Gängen: Beim Beschleunigen dreht der Motor hoch, schaltet und fällt wieder ab */
+  var GEARS = [0, 12, 21, 30, 41, 54, 70, 88, 108, 999], engRpm = 900, engGear = 0, engCut = 0, engThr = 0, engLast = 0;
+  function hiss(dur, vol, when) {
+    if (!AC || !audioOn()) return;
+    try {
+      var t = AC.currentTime + (when || 0), n = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+      n.buffer = noiseBuf; f.type = 'highpass'; f.frequency.value = 2500;
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      n.connect(f); f.connect(g); g.connect(master); n.start(t); n.stop(t + dur + 0.05);
+    } catch (e) {}
+  }
   function engineSound() {
     if (!AC || !eng) return;
     try {
-      var on = audioOn() && state === 'run', t = AC.currentTime, f = 55 + v * 2.1 + boost * 40;
-      eng.o1.frequency.setTargetAtTime(f, t, 0.05); eng.o2.frequency.setTargetAtTime(f * 0.5, t, 0.05);
-      eng.f.frequency.setTargetAtTime(300 + v * 9, t, 0.08);
-      eng.g.gain.setTargetAtTime(on ? 0.05 + Math.min(0.05, v / 1500) : 0, t, 0.08);
-      nitroG.gain.setTargetAtTime(on ? boost * 0.16 : 0, t, 0.05);
+      var t = AC.currentTime, edt = Math.min(0.1, Math.max(0.001, t - engLast)); engLast = t;
+      var on = audioOn() && (state === 'run' || state === 'over');
+      var thr = state !== 'run' ? 0 : (held.gas || boost > 0.2 || has('rocket')) ? 1 : held.brake ? 0 : 0.18;
+      var target = 850;
+      if (state === 'run') {
+        var gi = 1; while (gi < GEARS.length - 2 && v >= GEARS[gi]) gi++;
+        var lo = GEARS[gi - 1], hi = GEARS[gi], x = Math.max(0, Math.min(1, (v - lo) / (hi - lo)));
+        target = gi === 1 ? 1100 + x * 6100 : 3000 + x * 4300;
+        if (thr < 0.5) target *= 0.9;
+        if (gi > engGear && engGear > 0 && thr > 0.5) { engCut = 0.11; hiss(0.12, 0.05); noise(0.06, 0.25, 700, 0.02); }
+        if (gi < engGear && engGear > 0) engCut = 0.06;
+        engGear = gi;
+      } else engGear = 0;
+      /* Gas weg bei hoher Drehzahl: Turbo-Abblasen und Fehlzündungen */
+      if (engThr > 0.9 && thr < 0.5 && engRpm > 4300) {
+        hiss(0.38, 0.09);
+        var pops = 1 + Math.floor(Math.random() * 3);
+        for (var pi2 = 0; pi2 < pops; pi2++) noise(0.05, 0.4, 900, 0.06 + pi2 * rnd(0.05, 0.11));
+      }
+      engThr += (thr - engThr) * Math.min(1, edt * 10);
+      engRpm += (target - engRpm) * Math.min(1, edt * (target > engRpm ? 7 : 4));
+      if (engCut > 0) { engCut -= edt; engRpm -= edt * 9000; }
+      engRpm = Math.max(800, Math.min(7600, engRpm));
+      var f = engRpm / 60 * 4, cut = engCut > 0 ? 0.3 : 1;
+      eng.o1.frequency.setTargetAtTime(f, t, 0.02);
+      eng.o2.frequency.setTargetAtTime(f * 1.006, t, 0.02);
+      eng.sub.frequency.setTargetAtTime(f / 2, t, 0.02);
+      eng.rum.frequency.setTargetAtTime(engRpm / 60 * 2, t, 0.03);
+      eng.lp.frequency.setTargetAtTime(350 + engRpm * (0.18 + 0.32 * engThr) + boost * 900, t, 0.04);
+      eng.body.gain.setTargetAtTime(on ? (0.07 + 0.11 * engThr) * cut : 0, t, 0.04);
+      eng.intakeF.frequency.setTargetAtTime(f * 3, t, 0.03);
+      eng.intakeG.gain.setTargetAtTime(on ? engThr * (engRpm / 7600) * 0.07 * cut : 0, t, 0.04);
+      eng.turbo.frequency.setTargetAtTime(1800 + engRpm * 0.55 + boost * 1400, t, 0.1);
+      eng.turboG.gain.setTargetAtTime(on ? engThr * (engRpm / 7600) * 0.012 + boost * 0.01 : 0, t, 0.1);
+      eng.windF.frequency.setTargetAtTime(300 + v * 12, t, 0.1);
+      eng.windG.gain.setTargetAtTime(on ? Math.min(0.09, v / 1100) : 0, t, 0.15);
+      nitroG.gain.setTargetAtTime(on ? boost * 0.12 : 0, t, 0.05);
     } catch (e) {}
   }
 
