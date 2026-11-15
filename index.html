@@ -143,6 +143,9 @@
   .timer.low { color: var(--danger); }
   .clip { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 30; background: #000000; display: grid; place-items: center; }
   .clip video { width: 100%; height: 100%; object-fit: contain; background: #000000; }
+  .clip.broken { background: transparent; }
+  .clip.broken video, .clip.broken button { visibility: hidden; }
+  .shard { position: fixed; top: 0; left: 0; z-index: 31; pointer-events: none; }
   .clip button {
     position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     height: 46px; padding: 0 18px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(0, 0, 0, 0.55);
@@ -328,6 +331,7 @@
 <div id="flash" class="flash"></div>
 <div id="daze" class="daze"></div>
 <div id="fall" class="fall"></div>
+<canvas id="shard" class="shard" hidden></canvas>
 <div id="clip" class="clip" hidden><video id="clip-v" playsinline webkit-playsinline preload="none"></video><button id="clip-skip" type="button">Überspringen</button></div>
 <div id="timer" class="timer" hidden>60</div>
 <div id="mega" class="mega">Radj impressed</div>
@@ -2026,18 +2030,94 @@
   }
   /* ---------- Spezial-Clip ---------- */
   var clipBusy = false;
+  /* ---------- Golfschlag: Bild einfrieren, Auto springt hindurch, Bild zerspringt ---------- */
+  var HIT_T = 2.78, shard = null, introT = -1;
+  function shatterFrame(vid) {
+    var W = Math.max(200, VIS.w), H = Math.max(200, window.innerHeight), dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var src = document.createElement('canvas'); src.width = Math.round(W * dpr); src.height = Math.round(H * dpr);
+    var g = src.getContext('2d');
+    g.fillStyle = '#000'; g.fillRect(0, 0, src.width, src.height);
+    var vw = vid.videoWidth || 9, vh = vid.videoHeight || 16, sc = Math.min(W / vw, H / vh);
+    try { g.drawImage(vid, (W - vw * sc) / 2 * dpr, (H - vh * sc) / 2 * dpr, vw * sc * dpr, vh * sc * dpr); } catch (e) { return false; }
+    /* Dreiecke aus einem verrückten Gitter, feiner rund um den Einschlag */
+    var cols = 8, rows = Math.max(8, Math.round(cols * H / W)), ix = W * 0.5, iy = H * 0.56, pts = [], tris = [];
+    for (var r = 0; r <= rows; r++) {
+      pts.push([]);
+      for (var c = 0; c <= cols; c++) {
+        var x = c / cols * W, y = r / rows * H;
+        if (c > 0 && c < cols) x += rnd(-0.38, 0.38) * W / cols;
+        if (r > 0 && r < rows) y += rnd(-0.38, 0.38) * H / rows;
+        pts[r].push([x, y]);
+      }
+    }
+    function addTri(a, b, cc) {
+      var minX = Math.min(a[0], b[0], cc[0]), minY = Math.min(a[1], b[1], cc[1]);
+      var bw = Math.ceil(Math.max(a[0], b[0], cc[0]) - minX) + 2, bh = Math.ceil(Math.max(a[1], b[1], cc[1]) - minY) + 2;
+      var pc = document.createElement('canvas'); pc.width = Math.ceil(bw * dpr); pc.height = Math.ceil(bh * dpr);
+      var q = pc.getContext('2d');
+      q.scale(dpr, dpr); q.beginPath();
+      q.moveTo(a[0] - minX, a[1] - minY); q.lineTo(b[0] - minX, b[1] - minY); q.lineTo(cc[0] - minX, cc[1] - minY); q.closePath();
+      q.save(); q.clip();
+      q.drawImage(src, minX * dpr, minY * dpr, bw * dpr, bh * dpr, 0, 0, bw, bh);
+      q.restore();
+      q.strokeStyle = 'rgba(255,255,255,0.55)'; q.lineWidth = 1.2; q.stroke();
+      var cx = (a[0] + b[0] + cc[0]) / 3, cy = (a[1] + b[1] + cc[1]) / 3, dx = cx - ix, dy = cy - iy, d = Math.sqrt(dx * dx + dy * dy) + 1;
+      var sp = rnd(320, 760) * (0.45 + 200 / (d + 140));
+      tris.push({ c: pc, x: minX, y: minY, w: bw, h: bh, cx: cx - minX, cy: cy - minY,
+        vx: dx / d * sp + rnd(-80, 80), vy: dy / d * sp + rnd(-120, 40), rot: 0, vr: rnd(-9, 9), delay: d / Math.max(W, H) * 0.22 });
+    }
+    for (r = 0; r < rows; r++) for (c = 0; c < cols; c++) {
+      var p00 = pts[r][c], p10 = pts[r][c + 1], p01 = pts[r + 1][c], p11 = pts[r + 1][c + 1];
+      if ((r + c) % 2) { addTri(p00, p10, p11); addTri(p00, p11, p01); } else { addTri(p00, p10, p01); addTri(p10, p11, p01); }
+    }
+    var cv = $('shard'); cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    shard = { tris: tris, t: 0, W: W, H: H, dpr: dpr, ix: ix, iy: iy, ctx: cv.getContext('2d'), cv: cv };
+    cv.hidden = false;
+    return true;
+  }
+  function drawShards(dt) {
+    var S = shard, g = S.ctx;
+    S.t += dt;
+    g.setTransform(S.dpr, 0, 0, S.dpr, 0, 0);
+    g.clearRect(0, 0, S.W, S.H);
+    var fly = Math.max(0, S.t - 0.14);
+    for (var i = 0; i < S.tris.length; i++) {
+      var o = S.tris[i], tt = Math.max(0, fly - o.delay);
+      var sc = 1 + tt * 0.9, alpha = Math.max(0, 1 - Math.max(0, tt - 0.45) * 1.6);
+      if (alpha <= 0) continue;
+      g.save();
+      g.globalAlpha = alpha;
+      g.translate(o.x + o.cx + o.vx * tt, o.y + o.cy + o.vy * tt + 900 * tt * tt);
+      g.rotate(o.vr * tt);
+      g.scale(sc, sc);
+      g.drawImage(o.c, -o.cx, -o.cy, o.w, o.h);
+      g.restore();
+    }
+    /* Einschlag: weißer Blitz und Risse vor dem Zerspringen */
+    if (S.t < 0.3) {
+      g.globalAlpha = Math.max(0, 0.85 - S.t * 3);
+      var gr = g.createRadialGradient(S.ix, S.iy, 0, S.ix, S.iy, Math.max(S.W, S.H) * 0.5);
+      gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.25, 'rgba(255,240,200,0.5)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = gr; g.fillRect(0, 0, S.W, S.H);
+      g.globalAlpha = 1;
+    }
+    return S.t > 1.45;
+  }
+  function endShards() { if (shard) { shard.cv.hidden = true; shard = null; } }
+  var clipEnd = null;
   function playClip(then) {
     var box = $('clip'), vid = $('clip-v'), done = false;
     function end() {
       if (done) return; done = true;
       try { vid.pause(); } catch (e) {}
-      box.hidden = true; clipBusy = false;
+      box.hidden = true; box.classList.remove('broken'); clipBusy = false; clipEnd = null;
+      endShards(); introT = -1; player.group.position.x = 0; player.group.rotation.set(0, 0, 0);
       vid.onended = vid.onerror = null;
       then();
     }
     clipBusy = true;
     $('garage').hidden = true; box.hidden = false;
-    vid.onended = end; vid.onerror = end;
+    vid.onended = end; vid.onerror = end; clipEnd = end;
     $('clip-skip').onclick = end;
     if (!vid.getAttribute('src')) vid.setAttribute('src', CLIP_SRC);
     try { vid.currentTime = 0; } catch (e) {}
@@ -2676,7 +2756,29 @@
       var ss = 0.25 + pt.life * 0.7; pt.s.scale.set(ss, ss, 1);
     }
 
-    if (state === 'menu') {
+    if (clipBusy && !shard && introT < 0 && clipEnd) {
+      var cvid = $('clip-v');
+      if (cvid.currentTime >= HIT_T && !cvid.paused) {
+        if (shatterFrame(cvid)) {
+          cvid.pause(); $('clip').classList.add('broken'); introT = 0;
+          noise(0.6, 0.7, 4000); tone(1800, 0.5, 'sine', 0.08, 0, 300); buzz(60);
+          try { if (AC) AC.resume(); } catch (e) {}
+        }
+      }
+    }
+    if (shard && drawShards(dt) && clipEnd) clipEnd();
+    if (introT >= 0) {
+      /* Das gewählte Auto springt auf die Kamera zu und über sie hinweg */
+      introT += dt;
+      var ik = introT;
+      g.position.set(-16 + 34 * ik, 0.04 + 4.5 * ik * ik, 0);
+      g.rotation.set(0, 0, 0.3 * ik);
+      g.visible = true;
+      for (var iw = 0; iw < 4; iw++) player.wheels[iw].rotation.z -= dt * 40;
+      camera.position.set(11, 1.5, 0);
+      camera.lookAt(-10, 1.6, 0);
+      camera.fov = baseFov + 6;
+    } else if (state === 'menu') {
       var R = aspect < 1 ? 9.5 : 8;
       camera.position.set(Math.cos(menuAngle) * R, 2.3, Math.sin(menuAngle) * R);
       camera.lookAt(0, aspect < 1 ? -1.6 : -0.6, 0);
