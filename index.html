@@ -2181,6 +2181,7 @@
     var vid = $('clip-v');
     if (!vid.getAttribute('src')) { vid.setAttribute('src', CLIP_SRC); try { vid.load(); } catch (e) {} }
   }
+  var clipBlobTried = false;
   function playClip(then) {
     var box = $('clip'), vid = $('clip-v'), info = $('clip-info'), btn = $('clip-play'), done = false, started = false;
     function end() {
@@ -2191,30 +2192,64 @@
       endShards(); introT = -1; player.group.position.x = 0; player.group.rotation.set(0, 0, 0);
       then();
     }
-    function tryPlay(allowMute) {
+    function fail(why) {
+      if (done || started) return;
+      btn.hidden = true; info.hidden = false;
+      info.textContent = 'Clip geht auf diesem Gerät nicht (' + why + '). Weiter zum Rennen …';
+      setTimeout(end, 2500);
+    }
+    /* Zweiter Weg: Datei komplett laden und aus dem Speicher abspielen */
+    function viaBlob(why) {
+      if (done || started) return;
+      if (clipBlobTried || !window.fetch || !window.URL || !URL.createObjectURL) { fail(why); return; }
+      clipBlobTried = true;
+      info.hidden = false; btn.hidden = true; info.textContent = 'Lädt …';
+      fetch(CLIP_SRC, { cache: 'reload' }).then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.blob();
+      }).then(function (bl) {
+        if (done) return;
+        var url = URL.createObjectURL(bl.type ? bl : new Blob([bl], { type: 'video/mp4' }));
+        vid.setAttribute('src', url); vid.load();
+        vid.onerror = function () { fail('Format ' + (vid.error ? vid.error.code : '?')); };
+        tryPlay(true, true);
+      }).catch(function (e) { fail('Download: ' + (e && e.message ? e.message : 'fehlgeschlagen')); });
+    }
+    function tryPlay(allowMute, last) {
       var pr;
-      try { pr = vid.play(); } catch (e) { pr = null; }
-      if (pr && pr.catch) pr.catch(function () {
+      try { pr = vid.play(); } catch (e) { pr = Promise.reject(e); }
+      if (pr && pr.catch) pr.catch(function (err) {
         if (done || started) return;
-        if (allowMute && !vid.muted) { vid.muted = true; tryPlay(false); return; }
-        /* Das Gerät verlangt einen eigenen Tipp zum Abspielen */
-        info.hidden = true; btn.hidden = false;
+        var name = err && err.name ? err.name : 'Fehler';
+        if (name === 'NotAllowedError') {
+          if (allowMute && !vid.muted) { vid.muted = true; tryPlay(false, last); return; }
+          /* Das Gerät verlangt einen eigenen Tipp zum Abspielen */
+          info.hidden = true; btn.hidden = false;
+          btn.onclick = function () {
+            btn.hidden = true; info.hidden = false; info.textContent = 'Lädt …'; vid.muted = false;
+            var p2; try { p2 = vid.play(); } catch (e) { p2 = Promise.reject(e); }
+            if (p2 && p2.catch) p2.catch(function (e2) {
+              var n2 = e2 && e2.name ? e2.name : 'Fehler';
+              if (n2 === 'NotAllowedError') fail('Abspielen blockiert'); else if (last) fail(n2); else viaBlob(n2);
+            });
+          };
+        } else if (last) fail(name);
+        else viaBlob(name);
       });
     }
     clipBusy = true;
     $('garage').hidden = true; box.hidden = false; info.hidden = false; info.textContent = 'Lädt …'; btn.hidden = true;
     vid.onended = end; clipEnd = end;
-    vid.onerror = function () { if (!done) { info.hidden = false; info.textContent = 'Clip konnte nicht geladen werden'; setTimeout(end, 1500); } };
+    vid.onerror = function () { viaBlob('Laden ' + (vid.error ? vid.error.code : '?')); };
     vid.onplaying = function () { started = true; info.hidden = true; btn.hidden = true; };
-    btn.onclick = function () { btn.hidden = true; info.hidden = false; vid.muted = false; tryPlay(true); };
     $('clip-skip').onclick = end;
     primeClip();
     try { vid.currentTime = 0; } catch (e) {}
     try { if (AC && AC.state !== 'suspended') AC.suspend(); } catch (e) {}
     vid.muted = false;
-    tryPlay(true);
-    /* Nur abbrechen, wenn nach 20 Sekunden immer noch nichts geladen ist */
-    setTimeout(function () { if (!done && !started && vid.readyState < 2 && btn.hidden) end(); }, 20000);
+    tryPlay(true, false);
+    /* Nach 20 Sekunden ohne Bild: zweiter Weg, danach aufgeben */
+    setTimeout(function () { if (!done && !started && vid.readyState < 2 && btn.hidden) viaBlob('Zeitüberschreitung'); }, 20000);
   }
   function start() {
     if (!unlocked(sel) || state !== 'menu' || clipBusy) return;
