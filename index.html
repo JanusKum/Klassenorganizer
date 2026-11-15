@@ -141,6 +141,13 @@
     font: 700 clamp(26px, 7vw, 40px) var(--display); font-variant-numeric: tabular-nums; color: var(--fg); text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
   }
   .timer.low { color: var(--danger); }
+  .clip { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 30; background: #000000; display: grid; place-items: center; }
+  .clip video { width: 100%; height: 100%; object-fit: contain; background: #000000; }
+  .clip button {
+    position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    height: 46px; padding: 0 18px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(0, 0, 0, 0.55);
+    color: #ffffff; font: 700 18px var(--display); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
+  }
   .fall { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; opacity: 0; background: #000000; }
   .fall.fx { animation: fall 2.1s ease-in-out; }
   @keyframes fall { 0% { opacity: 0; } 30% { opacity: 0; } 56% { opacity: 1; } 66% { opacity: 1; } 100% { opacity: 0; } }
@@ -321,6 +328,7 @@
 <div id="flash" class="flash"></div>
 <div id="daze" class="daze"></div>
 <div id="fall" class="fall"></div>
+<div id="clip" class="clip" hidden><video id="clip-v" playsinline webkit-playsinline preload="none"></video><button id="clip-skip" type="button">Überspringen</button></div>
 <div id="timer" class="timer" hidden>60</div>
 <div id="mega" class="mega">Radj impressed</div>
 
@@ -1697,6 +1705,7 @@
 
   /* ---------- Spielstand ---------- */
   var DEF_KEYS = { left: 'ArrowLeft', right: 'ArrowRight', gas: 'ArrowUp', brake: 'ArrowDown', nitro: 'Shift', skill: ' ' };
+  var CLIP_SRC = 'intro.mp4';
   var ALL_OPEN = false;
   var save = { total: 0, best: 0, car: 0, maxLevel: 1, startLevel: 1, lift: 0, bestScore: 0, snd: true };
   try {
@@ -1704,8 +1713,8 @@
     if (rawSave) { save.total = rawSave.total | 0; save.best = rawSave.best | 0; save.car = rawSave.car | 0; save.maxLevel = (rawSave.maxLevel | 0) || 1; save.startLevel = (rawSave.startLevel | 0) || 1; save.lift = (rawSave.lift | 0) % 3;
       if (rawSave.pos && rawSave.pos.pedals && rawSave.pos.steer) save.pos = rawSave.pos;
       save.swap = !!rawSave.swap; save.bestScore = rawSave.bestScore | 0; save.snd = rawSave.snd !== false;
-      if (Array.isArray(rawSave.bests)) save.bests = [rawSave.bests[0] | 0, rawSave.bests[1] | 0, rawSave.bests[2] | 0];
-      save.mode = ((rawSave.mode | 0) % 3 + 3) % 3;
+      if (Array.isArray(rawSave.bests)) save.bests = [rawSave.bests[0] | 0, rawSave.bests[1] | 0, rawSave.bests[2] | 0, rawSave.bests[3] | 0];
+      save.mode = ((rawSave.mode | 0) % 4 + 4) % 4;
       if (rawSave.keys && typeof rawSave.keys === 'object') {
         var keysOk = true;
         for (var ka in DEF_KEYS) if (typeof rawSave.keys[ka] !== 'string') keysOk = false;
@@ -1714,17 +1723,18 @@
     else { save.best = parseInt(localStorage.getItem('nachtfalke-best') || '0', 10) || 0; }
   } catch (e) {}
   function persist() { try { localStorage.setItem('nachtfalke-save', JSON.stringify(save)); } catch (e) {} }
-  if (!save.bests) save.bests = [save.bestScore | 0, 0, 0];
+  if (!save.bests) save.bests = [save.bestScore | 0, 0, 0, 0];
   if (!save.mode) save.mode = 0;
 
   /* ---------- Modi und Ränge ---------- */
   var MODES = [
     { name: 'Klassisch', desc: 'Endlos fahren. Dein Auto hält zwei Treffer aus, der dritte ist der Crash.' },
     { name: 'Zeitrennen', desc: '60 Sekunden. Jede Überholung bringt Zeit, ein Crash kostet 8 Sekunden.' },
-    { name: 'Hardcore', desc: 'Jede Berührung ist der Crash. Schnellerer Verkehr, doppelte Punkte.' }
+    { name: 'Hardcore', desc: 'Jede Berührung ist der Crash. Schnellerer Verkehr, doppelte Punkte.' },
+    { name: 'Spezialmodus', desc: 'Startet mit dem Spezial-Clip. Danach Regeln wie Klassisch, mit eigener Bestenliste.' }
   ];
   var RANKS = ['Bronze', 'Silber', 'Gold', 'Platin', 'Diamant', 'Legende'];
-  var RANK_AT = [[500, 1500, 4000, 8000, 15000, 30000], [300, 900, 2000, 4000, 7000, 12000], [800, 2500, 6000, 12000, 24000, 45000]];
+  var RANK_AT = [[500, 1500, 4000, 8000, 15000, 30000], [300, 900, 2000, 4000, 7000, 12000], [800, 2500, 6000, 12000, 24000, 45000], [500, 1500, 4000, 8000, 15000, 30000]];
   function rankIdx(pts, m) { var n = 0; while (n < 6 && pts >= RANK_AT[m][n]) n++; return n; }
   function showMode() {
     var m = save.mode;
@@ -1734,7 +1744,7 @@
     var ri = rankIdx(save.bests[m], m);
     $('g-rank').textContent = ri ? RANKS[ri - 1] : 'keiner';
   }
-  function stepMode(d) { save.mode = (save.mode + d + 3) % 3; persist(); showMode(); }
+  function stepMode(d) { save.mode = (save.mode + d + 4) % 4; persist(); showMode(); }
   function recordBest() {
     if (passed > save.best) save.best = passed;
     if (score > save.bests[mode]) { save.bests[mode] = score; newBest = score > 0; }
@@ -2014,7 +2024,40 @@
     select(unlocked(sel) ? sel : save.car);
     clearHeld();
   }
+  /* ---------- Spezial-Clip ---------- */
+  var clipBusy = false;
+  function playClip(then) {
+    var box = $('clip'), vid = $('clip-v'), done = false;
+    function end() {
+      if (done) return; done = true;
+      try { vid.pause(); } catch (e) {}
+      box.hidden = true; clipBusy = false;
+      vid.onended = vid.onerror = null;
+      then();
+    }
+    clipBusy = true;
+    $('garage').hidden = true; box.hidden = false;
+    vid.onended = end; vid.onerror = end;
+    $('clip-skip').onclick = end;
+    if (!vid.getAttribute('src')) vid.setAttribute('src', CLIP_SRC);
+    try { vid.currentTime = 0; } catch (e) {}
+    try { if (AC && AC.state !== 'suspended') AC.suspend(); } catch (e) {}
+    var pr;
+    try { vid.muted = false; pr = vid.play(); } catch (e) { end(); return; }
+    if (pr && pr.catch) pr.catch(function () {
+      /* Ohne Ton erlaubt? Dann stumm abspielen, sonst überspringen */
+      vid.muted = true;
+      var p2 = vid.play();
+      if (p2 && p2.catch) p2.catch(end);
+    });
+    setTimeout(function () { if (!done && (vid.readyState === 0 || vid.error)) end(); }, 4000);
+  }
   function start() {
+    if (!unlocked(sel) || state !== 'menu' || clipBusy) return;
+    if (save.mode === 3) { playClip(function () { startRun(); try { if (AC) AC.resume(); } catch (e) {} }); return; }
+    startRun();
+  }
+  function startRun() {
     if (!unlocked(sel) || state !== 'menu') return;
     save.car = sel; persist();
     unzoom(); fitView();
