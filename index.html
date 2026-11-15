@@ -144,7 +144,9 @@
   .clip { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 30; background: #000000; display: grid; place-items: center; }
   .clip video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; background: #000000; }
   .clip.broken { background: transparent; }
-  .clip.broken video, .clip.broken button { visibility: hidden; }
+  .clip.broken video, .clip.broken button, .clip.broken .clip-info { visibility: hidden; }
+  .clip-info { position: absolute; left: 0; right: 0; top: 50%; text-align: center; color: #ffffff; font: 700 18px var(--display); letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.8; }
+  .clip .clip-play { position: absolute; left: 50%; top: 50%; right: auto; bottom: auto; transform: translate(-50%, -50%); height: 64px; padding: 0 26px; font-size: 22px; background: var(--accent); color: #17120a; border: 0; }
   .shard { position: fixed; top: 0; left: 0; z-index: 31; pointer-events: none; }
   .clip button {
     position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(20px + env(safe-area-inset-bottom, 0px));
@@ -332,7 +334,7 @@
 <div id="daze" class="daze"></div>
 <div id="fall" class="fall"></div>
 <canvas id="shard" class="shard" hidden></canvas>
-<div id="clip" class="clip" hidden><video id="clip-v" playsinline webkit-playsinline preload="none"></video><button id="clip-skip" type="button">Überspringen</button></div>
+<div id="clip" class="clip" hidden><video id="clip-v" playsinline webkit-playsinline preload="auto"></video><div id="clip-info" class="clip-info">Lädt …</div><button id="clip-play" class="clip-play" type="button" hidden>&#9654; Clip abspielen</button><button id="clip-skip" type="button">Überspringen</button></div>
 <div id="timer" class="timer" hidden>60</div>
 <div id="mega" class="mega">Radj impressed</div>
 
@@ -1813,6 +1815,7 @@
     var m = save.mode;
     $('mode-text').textContent = 'Modus: ' + MODES[m].name;
     $('mode-desc').textContent = MODES[m].desc;
+    if (m === 3) primeClip();
     $('g-score').textContent = save.bests[m];
     var ri = rankIdx(save.bests[m], m);
     $('g-rank').textContent = ri ? RANKS[ri - 1] : 'keiner';
@@ -2174,32 +2177,44 @@
   }
   function endShards() { if (shard) { shard.cv.hidden = true; shard = null; } }
   var clipEnd = null;
+  function primeClip() {
+    var vid = $('clip-v');
+    if (!vid.getAttribute('src')) { vid.setAttribute('src', CLIP_SRC); try { vid.load(); } catch (e) {} }
+  }
   function playClip(then) {
-    var box = $('clip'), vid = $('clip-v'), done = false;
+    var box = $('clip'), vid = $('clip-v'), info = $('clip-info'), btn = $('clip-play'), done = false, started = false;
     function end() {
       if (done) return; done = true;
       try { vid.pause(); } catch (e) {}
       box.hidden = true; box.classList.remove('broken'); clipBusy = false; clipEnd = null;
+      vid.onended = vid.onerror = vid.onplaying = null; btn.onclick = null;
       endShards(); introT = -1; player.group.position.x = 0; player.group.rotation.set(0, 0, 0);
-      vid.onended = vid.onerror = null;
       then();
     }
+    function tryPlay(allowMute) {
+      var pr;
+      try { pr = vid.play(); } catch (e) { pr = null; }
+      if (pr && pr.catch) pr.catch(function () {
+        if (done || started) return;
+        if (allowMute && !vid.muted) { vid.muted = true; tryPlay(false); return; }
+        /* Das Gerät verlangt einen eigenen Tipp zum Abspielen */
+        info.hidden = true; btn.hidden = false;
+      });
+    }
     clipBusy = true;
-    $('garage').hidden = true; box.hidden = false;
-    vid.onended = end; vid.onerror = end; clipEnd = end;
+    $('garage').hidden = true; box.hidden = false; info.hidden = false; info.textContent = 'Lädt …'; btn.hidden = true;
+    vid.onended = end; clipEnd = end;
+    vid.onerror = function () { if (!done) { info.hidden = false; info.textContent = 'Clip konnte nicht geladen werden'; setTimeout(end, 1500); } };
+    vid.onplaying = function () { started = true; info.hidden = true; btn.hidden = true; };
+    btn.onclick = function () { btn.hidden = true; info.hidden = false; vid.muted = false; tryPlay(true); };
     $('clip-skip').onclick = end;
-    if (!vid.getAttribute('src')) vid.setAttribute('src', CLIP_SRC);
+    primeClip();
     try { vid.currentTime = 0; } catch (e) {}
     try { if (AC && AC.state !== 'suspended') AC.suspend(); } catch (e) {}
-    var pr;
-    try { vid.muted = false; pr = vid.play(); } catch (e) { end(); return; }
-    if (pr && pr.catch) pr.catch(function () {
-      /* Ohne Ton erlaubt? Dann stumm abspielen, sonst überspringen */
-      vid.muted = true;
-      var p2 = vid.play();
-      if (p2 && p2.catch) p2.catch(end);
-    });
-    setTimeout(function () { if (!done && (vid.readyState === 0 || vid.error)) end(); }, 4000);
+    vid.muted = false;
+    tryPlay(true);
+    /* Nur abbrechen, wenn nach 20 Sekunden immer noch nichts geladen ist */
+    setTimeout(function () { if (!done && !started && vid.readyState < 2 && btn.hidden) end(); }, 20000);
   }
   function start() {
     if (!unlocked(sel) || state !== 'menu' || clipBusy) return;
