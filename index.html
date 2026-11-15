@@ -170,6 +170,22 @@
   .drop .rar { margin-top: 6px; font: 700 clamp(15px, 4vmin, 20px) var(--display); letter-spacing: 0.1em; text-transform: uppercase; color: var(--rc); text-shadow: 0 0 12px var(--rc), 0 2px 6px rgba(0,0,0,0.8); }
   .drop .nm { font: 500 13px var(--display); letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg); text-shadow: 0 2px 6px rgba(0,0,0,0.9); }
   .drop .new { position: absolute; top: 6px; left: 6px; z-index: 1; padding: 2px 7px; border-radius: 6px; background: var(--rc); color: #0b0d12; font: 700 12px var(--display); letter-spacing: 0.08em; }
+  .coll { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 25; background: #07090f; display: flex; justify-content: center;
+    padding-top: calc(var(--vvt, 0px) + 16px); padding-bottom: 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); box-sizing: border-box; }
+  .coll-box { width: min(720px, 100%); display: flex; flex-direction: column; gap: 12px; min-height: 0; max-height: var(--vvh, 100%); }
+  .coll-head { display: flex; align-items: center; gap: 12px; }
+  .coll-head h2 { margin: 0; min-width: 0; font: 700 clamp(22px, 6.5vw, 30px) var(--display); letter-spacing: 0.04em; text-transform: uppercase; }
+  .coll-head span { flex: 1 1 auto; min-width: 0; color: var(--accent); font: 700 20px var(--display); }
+  .coll-head button { flex: 0 0 auto; height: 44px; padding: 0 18px; border-radius: 12px; border: 0; background: var(--accent); color: #17120a; font: 700 18px var(--display); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
+  .coll-grid { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px; padding-bottom: 24px; }
+  .ctile { text-align: center; --rc: #4fa3ff; }
+  .ctile .cf { position: relative; aspect-ratio: 3 / 4; border-radius: 10px; overflow: hidden; border: 2px solid var(--rc); background: #10131c; box-shadow: 0 0 12px var(--rc); }
+  .ctile .cf img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+  .ctile.locked .cf { border-color: rgba(255, 255, 255, 0.18); box-shadow: none; display: grid; place-items: center; color: rgba(255, 255, 255, 0.35); font: 700 40px var(--display); }
+  .ctile .cnt { position: absolute; right: 5px; bottom: 5px; padding: 1px 6px; border-radius: 6px; background: rgba(0, 0, 0, 0.7); color: #fff; font: 700 13px var(--display); }
+  .ctile .rn { margin-top: 4px; font: 700 12px var(--display); letter-spacing: 0.08em; text-transform: uppercase; color: var(--rc); }
+  .ctile .nn { font: 500 13px var(--display); color: var(--fg); }
+  .ctile.locked .rn, .ctile.locked .nn { color: var(--muted); }
   .clip.broken { background: transparent; }
   .clip.broken video, .clip.broken button, .clip.broken .clip-info { visibility: hidden; }
   .clip-info { position: absolute; left: 0; right: 0; top: 50%; text-align: center; color: #ffffff; font: 700 18px var(--display); letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.8; }
@@ -387,7 +403,7 @@
   <header class="g-top">
     <h1>Nacht<span>falke</span></h1>
     <p><b id="g-total">0</b> insgesamt überholt · Rekord <b id="g-best">0</b> · Bestpunkte <b id="g-score">0</b> · Rang <b id="g-rank">keiner</b></p>
-    <p>Kartensammlung <b id="g-cards">0/10</b></p>
+    <p>Kartensammlung <b id="g-cards">0/11</b></p>
     <p class="founders">Founders <b>Janus</b> × <b>Philipp</b></p>
     <p id="g-result" class="g-result" hidden></p>
   </header>
@@ -405,6 +421,7 @@
         <dt>Nitro</dt><dd><i id="st-nitro"></i></dd>
       </dl>
       <div id="lock" class="lock" hidden><div><i id="lock-fill"></i></div><span id="lock-text"></span></div>
+      <div class="opt"><span>Sammelkarten</span><button id="coll-open" type="button">Ansehen</button></div>
       <div class="opt"><span>Tastatur belegen</span><button id="keys-open" type="button">Ändern</button></div>
       <div class="opt"><span>Ton und Vibration</span><button id="snd" type="button">An</button></div>
       <div class="opt"><span>Lenken und Gas tauschen</span><button id="swap" type="button">Normal</button></div>
@@ -445,6 +462,12 @@
     <p>Tippe auf eine Aktion und drücke dann die Taste, die du dafür haben willst. <b>Esc</b> bricht ab.</p>
     <div id="keys-list" class="klist"></div>
     <div class="btns"><button id="keys-reset" type="button">Standard</button><button id="keys-done" class="main" type="button">Fertig</button></div>
+  </div>
+</div>
+<div id="coll" class="coll" hidden>
+  <div class="coll-box">
+    <div class="coll-head"><h2>Sammelkarten</h2><span id="coll-count">0/11</span><button id="coll-close" type="button">Fertig</button></div>
+    <div id="coll-grid" class="coll-grid"></div>
   </div>
 </div>
 <div id="err" class="err" hidden></div>
@@ -1787,7 +1810,7 @@
     { name: 'Legendär', color: '#ffc03a', w: 4 }
   ];
   var CARDS_DEF = [
-    { id: 'pokal', name: 'Pokal', r: 0 }, { id: 'reifen', name: 'Reifen', r: 0 }, { id: 'blitz', name: 'Blitz', r: 0 },
+    { id: 'dieter', name: 'Dieter', r: 0, img: 'card-dieter.jpg', w: 2 }, { id: 'pokal', name: 'Pokal', r: 0 }, { id: 'reifen', name: 'Reifen', r: 0 }, { id: 'blitz', name: 'Blitz', r: 0 },
     { id: 'turbo', name: 'Turbo', r: 1 }, { id: 'flamme', name: 'Flamme', r: 1 },
     { id: 'cowboy', name: 'Der Cowboy', r: 2, img: 'card-cowboy.jpg', w: 3 }, { id: 'rakete', name: 'Rakete', r: 2 },
     { id: 'krone', name: 'Krone', r: 3 }, { id: 'diamant', name: 'Diamant', r: 3 },
@@ -1880,6 +1903,25 @@
   function showCardCount() {
     var have = CARDS_DEF.filter(function (c) { return (save.cards[c.id] | 0) > 0; }).length;
     $('g-cards').textContent = have + '/' + CARDS_DEF.length;
+  }
+  function openColl() {
+    var grid = $('coll-grid'); grid.textContent = '';
+    var have = 0;
+    CARDS_DEF.slice().sort(function (a, b) { return a.r - b.r; }).forEach(function (cd) {
+      var n = save.cards[cd.id] | 0, rar = RARITIES[cd.r];
+      var t = document.createElement('div'); t.className = 'ctile' + (n ? '' : ' locked'); t.style.setProperty('--rc', rar.color);
+      var f = document.createElement('div'); f.className = 'cf';
+      if (n) {
+        have++;
+        var im = document.createElement('img'); im.alt = cd.name; im.src = cardSrc(cd); f.appendChild(im);
+        var c = document.createElement('span'); c.className = 'cnt'; c.textContent = 'x' + n; f.appendChild(c);
+      } else f.textContent = '?';
+      var rn = document.createElement('div'); rn.className = 'rn'; rn.textContent = rar.name;
+      var nn = document.createElement('div'); nn.className = 'nn'; nn.textContent = n ? cd.name : '???';
+      t.appendChild(f); t.appendChild(rn); t.appendChild(nn); grid.appendChild(t);
+    });
+    $('coll-count').textContent = have + '/' + CARDS_DEF.length;
+    $('coll').hidden = false;
   }
   function dropCard() {
     if (dropBusy) { if (dropQ.length < 2) dropQ.push(1); return; }
@@ -2132,6 +2174,8 @@
   }
   function closeKeys() { keysOpen = false; capture = null; $('keys').hidden = true; }
   renderKeys();
+  $('coll-open').addEventListener('click', openColl);
+  $('coll-close').addEventListener('click', function () { $('coll').hidden = true; });
   $('keys-open').addEventListener('click', function () { keysOpen = true; capture = null; $('keys').hidden = false; renderKeys(); });
   $('keys-done').addEventListener('click', closeKeys);
   $('keys-reset').addEventListener('click', function () { delete save.keys; capture = null; persist(); renderKeys(); });
@@ -2344,7 +2388,8 @@
       try { vid.pause(); } catch (e) {}
       box.hidden = true; box.classList.remove('broken'); clipBusy = false; clipEnd = null;
       vid.onended = vid.onerror = vid.onplaying = null; btn.onclick = null;
-      endShards(); introT = -1; player.group.position.x = 0; player.group.rotation.set(0, 0, 0);
+      if (introT < 0) endShards();
+      introT = -1; player.group.position.x = 0; player.group.rotation.set(0, 0, 0);
       then();
     }
     function fail(why) {
@@ -2498,9 +2543,9 @@
     showCombo(true);
     var lv = Math.min(20, runStart + Math.floor(passed / 8));
     if (lv > save.maxLevel) save.maxLevel = lv;
-    var gotDrop = passed % 6 === 0 || (add === 2 && passed % 6 === 1);
+    var gotDrop = passed % 10 === 0 || (add === 2 && passed % 10 === 1);
     if (lv !== level) {
-      gotDrop = true;
+      if (Math.random() < 0.5) gotDrop = true;
       level = lv; pts += 100;
       $('level').textContent = 'Stufe ' + level;
       /* Alle zwei Stufen eine neue Strecke; jede dritte davon ist der Einsturz in den Tunnel */
@@ -3043,18 +3088,26 @@
         }
       }
     }
-    if (shard && drawShards(dt) && clipEnd) clipEnd();
+    if (shard && drawShards(dt)) endShards();
     if (introT >= 0) {
-      /* Das gewählte Auto springt auf die Kamera zu und über sie hinweg */
+      /* Kamera und Auto fliegen durch das Loch ins Bild hinein und landen auf der Straße.
+         Die Endposition ist genau die Rennkamera, deshalb geht es ohne Schnitt weiter. */
       introT += dt;
-      var ik = introT;
-      g.position.set(-16 + 34 * ik, 0.04 + 4.5 * ik * ik, 0);
-      g.rotation.set(0, 0, 0.3 * ik);
+      var IL = 1.25, ik = Math.min(1, introT / IL), ek = 1 - Math.pow(1 - ik, 3);
+      g.position.set(0, 0.04 + 9 * (1 - ik) * (1 - ik) * (1 + ik), 0);
+      g.rotation.set(0, 0, -0.22 * (1 - ik));
       g.visible = true;
-      for (var iw = 0; iw < 4; iw++) player.wheels[iw].rotation.z -= dt * 40;
-      camera.position.set(11, 1.5, 0);
-      camera.lookAt(-10, 1.6, 0);
-      camera.fov = baseFov + 6;
+      player.floorG.position.y = -(g.position.y - 0.04);
+      for (var iw = 0; iw < 4; iw++) player.wheels[iw].rotation.z -= dt * 30;
+      camera.position.set(-48 + 39 * ek, 22 - 18.5 * ek, 0);
+      camera.lookAt(8 - 4 * (1 - ek), 0.7 + 3 * (1 - ek), 0);
+      camera.fov = baseFov + 14 * (1 - ek);
+      if (ik >= 1 && clipEnd) {
+        /* Landung */
+        shake = 0.55; burst(0, 0.3, 0, sparkOrange, 14); noise(0.3, 0.6, 900); buzz(60);
+        chunks(4, 0, true);
+        var ce = clipEnd; ce();
+      }
     } else if (state === 'menu') {
       var R = aspect < 1 ? 9.5 : 8;
       camera.position.set(Math.cos(menuAngle) * R, 2.3, Math.sin(menuAngle) * R);
