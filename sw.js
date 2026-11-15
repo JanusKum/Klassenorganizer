@@ -1,4 +1,4 @@
-var CACHE = 'klassenorganisierer-v21';
+var CACHE = 'klassenorganisierer-v22';
 var CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(CORE); }).then(function () { return self.skipWaiting(); }));
@@ -12,6 +12,8 @@ self.addEventListener('activate', function (e) {
    Fremde Dateien (3D-Bibliothek, Schrift): zuerst aus dem Speicher. */
 self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET') return;
+  /* Videos nicht über den Speicher leiten: iPhones laden sie stückweise */
+  if (/\.(mp4|mov)(\?|$)/.test(e.request.url)) return;
   var own = new URL(e.request.url).origin === self.location.origin;
   function store(res) {
     var copy = res.clone();
