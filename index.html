@@ -1803,11 +1803,11 @@
 
   /* ---------- Karten-Drops: nach jedem sechsten Überholen und jeder neuen Stufe ---------- */
   var RARITIES = [
-    { name: 'Rare', color: '#4fa3ff', w: 44 },
-    { name: 'Super Rare', color: '#a46bff', w: 26 },
-    { name: 'Episch', color: '#ff4fd8', w: 17 },
-    { name: 'Mythisch', color: '#ff4a36', w: 9 },
-    { name: 'Legendär', color: '#ffc03a', w: 4 }
+    { name: 'Rare', color: '#4fa3ff', w: 62 },
+    { name: 'Super Rare', color: '#a46bff', w: 24 },
+    { name: 'Episch', color: '#ff4fd8', w: 10 },
+    { name: 'Mythisch', color: '#ff4a36', w: 3.3 },
+    { name: 'Legendär', color: '#ffc03a', w: 0.7 }
   ];
   var CARDS_DEF = [
     { id: 'dieter', name: 'Dieter', r: 0, img: 'card-dieter.jpg' },
@@ -2553,9 +2553,9 @@
     showCombo(true);
     var lv = Math.min(20, runStart + Math.floor(passed / 8));
     if (lv > save.maxLevel) save.maxLevel = lv;
-    var gotDrop = passed % 15 === 0 || (add === 2 && passed % 15 === 1);
+    var gotDrop = passed % 20 === 0 || (add === 2 && passed % 20 === 1);
     if (lv !== level) {
-      if (Math.random() < 0.3) gotDrop = true;
+      if (Math.random() < 0.2) gotDrop = true;
       level = lv; pts += 100;
       $('level').textContent = 'Stufe ' + level;
       /* Alle zwei Stufen eine neue Strecke; jede dritte davon ist der Einsturz in den Tunnel */
