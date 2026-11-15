@@ -174,7 +174,7 @@
     padding-top: calc(var(--vvt, 0px) + 16px); padding-bottom: 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); box-sizing: border-box; }
   .coll-box { width: min(720px, 100%); display: flex; flex-direction: column; gap: 12px; min-height: 0; max-height: var(--vvh, 100%); }
   .coll-head { display: flex; align-items: center; gap: 12px; }
-  .coll-head h2 { margin: 0; min-width: 0; font: 700 clamp(22px, 6.5vw, 30px) var(--display); letter-spacing: 0.04em; text-transform: uppercase; }
+  .coll-head h2 { margin: 0; min-width: 0; font: 700 clamp(19px, 5.2vw, 30px) var(--display); letter-spacing: 0.04em; text-transform: uppercase; }
   .coll-head span { flex: 1 1 auto; min-width: 0; color: var(--accent); font: 700 20px var(--display); }
   .coll-head button { flex: 0 0 auto; height: 44px; padding: 0 18px; border-radius: 12px; border: 0; background: var(--accent); color: #17120a; font: 700 18px var(--display); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
   .coll-grid { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px; padding-bottom: 24px; }
@@ -403,7 +403,7 @@
   <header class="g-top">
     <h1>Nacht<span>falke</span></h1>
     <p><b id="g-total">0</b> insgesamt überholt · Rekord <b id="g-best">0</b> · Bestpunkte <b id="g-score">0</b> · Rang <b id="g-rank">keiner</b></p>
-    <p>Kartensammlung <b id="g-cards">0/12</b></p>
+    <p>Kartensammlung <b id="g-cards">0/8</b></p>
     <p class="founders">Founders <b>Janus</b> × <b>Philipp</b></p>
     <p id="g-result" class="g-result" hidden></p>
   </header>
@@ -466,7 +466,7 @@
 </div>
 <div id="coll" class="coll" hidden>
   <div class="coll-box">
-    <div class="coll-head"><h2>Sammelkarten</h2><span id="coll-count">0/12</span><button id="coll-close" type="button">Fertig</button></div>
+    <div class="coll-head"><h2>Sammelkarten</h2><span id="coll-count">0/8</span><button id="coll-close" type="button">Fertig</button></div>
     <div id="coll-grid" class="coll-grid"></div>
   </div>
 </div>
@@ -1810,11 +1810,14 @@
     { name: 'Legendär', color: '#ffc03a', w: 4 }
   ];
   var CARDS_DEF = [
-    { id: 'dieter', name: 'Dieter', r: 0, img: 'card-dieter.jpg', w: 2 }, { id: 'pokal', name: 'Pokal', r: 0 }, { id: 'reifen', name: 'Reifen', r: 0 }, { id: 'blitz', name: 'Blitz', r: 0 },
-    { id: 'turbo', name: 'Turbo', r: 1 }, { id: 'flamme', name: 'Flamme', r: 1 },
-    { id: 'cowboy', name: 'Der Cowboy', r: 2, img: 'card-cowboy.jpg', w: 3 }, { id: 'rakete', name: 'Rakete', r: 2 },
-    { id: 'jonas', name: 'Jonas', r: 3, img: 'card-jonas.jpg', w: 2 }, { id: 'krone', name: 'Krone', r: 3 }, { id: 'diamant', name: 'Diamant', r: 3 },
-    { id: 'falke', name: 'Goldener Falke', r: 4 }
+    { id: 'dieter', name: 'Dieter', r: 0, img: 'card-dieter.jpg' },
+    { id: 'lachflash', name: 'Lachflash', r: 0, img: 'card-lachflash.jpg' },
+    { id: 'gutelaune', name: 'Gute Laune', r: 0, img: 'card-gutelaune.jpg' },
+    { id: 'boss', name: 'Der Boss', r: 1, img: 'card-boss.jpg' },
+    { id: 'cowboy', name: 'Der Cowboy', r: 2, img: 'card-cowboy.jpg' },
+    { id: 'schwarzweiss', name: 'Schwarzweiß', r: 2, img: 'card-schwarzweiss.jpg' },
+    { id: 'jonas', name: 'Jonas', r: 3, img: 'card-jonas.jpg' },
+    { id: 'millionaer', name: 'Der Millionär', r: 4, img: 'card-millionaer.jpg' }
   ];
   function drawCard(id, col) {
     var c = document.createElement('canvas'); c.width = 300; c.height = 400;
@@ -2543,9 +2546,9 @@
     showCombo(true);
     var lv = Math.min(20, runStart + Math.floor(passed / 8));
     if (lv > save.maxLevel) save.maxLevel = lv;
-    var gotDrop = passed % 10 === 0 || (add === 2 && passed % 10 === 1);
+    var gotDrop = passed % 15 === 0 || (add === 2 && passed % 15 === 1);
     if (lv !== level) {
-      if (Math.random() < 0.5) gotDrop = true;
+      if (Math.random() < 0.3) gotDrop = true;
       level = lv; pts += 100;
       $('level').textContent = 'Stufe ' + level;
       /* Alle zwei Stufen eine neue Strecke; jede dritte davon ist der Einsturz in den Tunnel */
