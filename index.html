@@ -403,7 +403,7 @@
   <header class="g-top">
     <h1>Nacht<span>falke</span></h1>
     <p><b id="g-total">0</b> insgesamt überholt · Rekord <b id="g-best">0</b> · Bestpunkte <b id="g-score">0</b> · Rang <b id="g-rank">keiner</b></p>
-    <p>Kartensammlung <b id="g-cards">0/8</b></p>
+    <p>Kartensammlung <b id="g-cards">0/12</b></p>
     <p class="founders">Founders <b>Janus</b> × <b>Philipp</b></p>
     <p id="g-result" class="g-result" hidden></p>
   </header>
@@ -466,7 +466,7 @@
 </div>
 <div id="coll" class="coll" hidden>
   <div class="coll-box">
-    <div class="coll-head"><h2>Sammelkarten</h2><span id="coll-count">0/8</span><button id="coll-close" type="button">Fertig</button></div>
+    <div class="coll-head"><h2>Sammelkarten</h2><span id="coll-count">0/12</span><button id="coll-close" type="button">Fertig</button></div>
     <div id="coll-grid" class="coll-grid"></div>
   </div>
 </div>
@@ -1813,9 +1813,13 @@
     { id: 'dieter', name: 'Dieter', r: 0, img: 'card-dieter.jpg' },
     { id: 'lachflash', name: 'Lachflash', r: 0, img: 'card-lachflash.jpg' },
     { id: 'gutelaune', name: 'Gute Laune', r: 0, img: 'card-gutelaune.jpg' },
+    { id: 'informatiker', name: 'Der Informatiker', r: 0, img: 'card-informatiker.jpg' },
+    { id: 'lockenkopf', name: 'Lockenkopf', r: 0, img: 'card-lockenkopf.jpg' },
     { id: 'boss', name: 'Der Boss', r: 1, img: 'card-boss.jpg' },
+    { id: 'blick', name: 'Der Blick', r: 1, img: 'card-seitenlage.jpg' },
     { id: 'cowboy', name: 'Der Cowboy', r: 2, img: 'card-cowboy.jpg' },
     { id: 'schwarzweiss', name: 'Schwarzweiß', r: 2, img: 'card-schwarzweiss.jpg' },
+    { id: 'schnurrbart', name: 'Schnurrbart', r: 2, img: 'card-schnurrbart.jpg' },
     { id: 'jonas', name: 'Jonas', r: 3, img: 'card-jonas.jpg' },
     { id: 'millionaer', name: 'Der Millionär', r: 4, img: 'card-millionaer.jpg' }
   ];
@@ -1978,7 +1982,9 @@
 
   /* ---------- Spielstand ---------- */
   var DEF_KEYS = { left: 'ArrowLeft', right: 'ArrowRight', gas: 'ArrowUp', brake: 'ArrowDown', nitro: 'Shift', skill: ' ' };
-  var CLIP_SRC = 'intro.mp4';
+  /* Spezialmodus: Bei jedem Start wird einer der Clips zufällig gewählt. hit = Moment, in dem das Bild zerspringt. */
+  var CLIPS = [{ src: 'intro.mp4', hit: 2.78 }, { src: 'intro-ale.mp4', hit: 2.3 }];
+  var clipCur = CLIPS[Math.floor(Math.random() * CLIPS.length)], CLIP_SRC = clipCur.src;
   var ALL_OPEN = false;
   var save = { total: 0, best: 0, car: 0, maxLevel: 1, startLevel: 1, lift: 0, bestScore: 0, snd: true };
   try {
@@ -2381,7 +2387,7 @@
   var clipEnd = null;
   function primeClip() {
     var vid = $('clip-v');
-    if (!vid.getAttribute('src')) { vid.setAttribute('src', CLIP_SRC); try { vid.load(); } catch (e) {} }
+    if (vid.getAttribute('src') !== CLIP_SRC) { vid.setAttribute('src', CLIP_SRC); try { vid.load(); } catch (e) {} }
   }
   var clipBlobTried = false;
   function playClip(then) {
@@ -2391,6 +2397,7 @@
       try { vid.pause(); } catch (e) {}
       box.hidden = true; box.classList.remove('broken'); clipBusy = false; clipEnd = null;
       vid.onended = vid.onerror = vid.onplaying = null; btn.onclick = null;
+      clipCur = CLIPS[Math.floor(Math.random() * CLIPS.length)]; CLIP_SRC = clipCur.src; clipBlobTried = false;
       if (introT < 0) endShards();
       introT = -1; player.group.position.x = 0; player.group.rotation.set(0, 0, 0);
       then();
@@ -3083,7 +3090,7 @@
 
     if (clipBusy && !shard && introT < 0 && clipEnd) {
       var cvid = $('clip-v');
-      if (cvid.currentTime >= HIT_T && !cvid.paused) {
+      if (cvid.currentTime >= clipCur.hit && !cvid.paused) {
         if (shatterFrame(cvid)) {
           cvid.pause(); $('clip').classList.add('broken'); introT = 0;
           noise(0.6, 0.7, 4000); tone(1800, 0.5, 'sine', 0.08, 0, 300); buzz(60);
