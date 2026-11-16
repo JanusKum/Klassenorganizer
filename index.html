@@ -135,6 +135,8 @@
   .s-scroll { flex: 0 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
   .s-foot { flex: 0 0 auto; display: flex; flex-direction: column; gap: 10px; }
   .lvl.mode span { color: var(--accent); }
+  .lvl.stk span { font-size: 16px; color: var(--fg); text-align: center; }
+  .lvl button:disabled { opacity: 0.35; cursor: default; }
   .mode-desc { margin: -4px 0 0; font-size: 12px; line-height: 1.35; color: var(--muted); text-align: center; }
   .timer {
     position: fixed; left: 0; width: var(--vw, 100%); top: calc(var(--vvt, 0px) + 10px); text-align: center; pointer-events: none;
@@ -369,7 +371,7 @@
     <div class="meter dmgm"><label>Zustand</label><div id="dmg" class="dmg"><i></i><i></i><i></i></div></div>
     <div id="skillbar" class="meter skill"><label id="skill-label">Sprung</label><div><i id="skill-fill"></i></div></div>
   </div>
-  <div class="count"><b id="passed">0</b>überholt<br><small id="level">Stufe 1</small><span class="pts"><b id="score">0</b> Punkte</span><div id="next" class="next" hidden><div><i id="next-fill"></i></div><span id="next-text"></span></div><div id="combo" class="combo" hidden><span>Serie</span> <b id="combo-x">2</b> <span id="combo-label"></span><div><i id="combo-fill"></i></div></div></div>
+  <div class="count"><b id="passed">0</b>überholt<br><small id="level">Stufe 1</small><span class="pts"><b id="score">0</b> Punkte</span><div id="next-prog" class="next" hidden><div><i id="next-fill"></i></div><span id="next-text"></span></div><div id="combo" class="combo" hidden><span>Serie</span> <b id="combo-x">2</b> <span id="combo-label"></span><div><i id="combo-fill"></i></div></div></div>
 </div>
 <div id="toast" class="toast"></div>
 <div id="pops" class="pops"></div>
@@ -420,6 +422,11 @@
         <dt>Lenkung</dt><dd><i id="st-grip"></i></dd>
         <dt>Nitro</dt><dd><i id="st-nitro"></i></dd>
       </dl>
+      <div class="lvl stk">
+        <button id="stk-prev" type="button" aria-label="Vorheriger Sticker">&#9664;</button>
+        <span id="stk-text">Sticker: keiner</span>
+        <button id="stk-next" type="button" aria-label="Nächster Sticker">&#9654;</button>
+      </div>
       <div id="lock" class="lock" hidden><div><i id="lock-fill"></i></div><span id="lock-text"></span></div>
       <div class="opt"><span>Sammelkarten</span><button id="coll-open" type="button">Ansehen</button></div>
       <div class="opt"><span>Tastatur belegen</span><button id="keys-open" type="button">Ändern</button></div>
@@ -1250,6 +1257,7 @@
     b.rotation.x = -Math.PI / 2; b.scale.set(len, wid, 1); b.position.set(x, y, 0);
     parent.add(b); return b;
   }
+  var roofGloss = new THREE.MeshPhysicalMaterial({ color: 0x0c0d11, metalness: 0.4, roughness: 0.18, clearcoat: 1 });
   function roofPanel(car, P, paint) {
     addBox(car, P.roofF - P.roofR + 0.2, 0.03, 1.08 * P.w / 1.82, (P.roofF + P.roofR) / 2, P.roof + 0.045, 0, paint);
   }
@@ -1461,6 +1469,70 @@
       trail.rotation.x = -Math.PI / 2; trail.scale.set(-7, 0.34, 1); trail.position.set(-5.8, tailY, s * 0.56);
       trail.userData.noShadow = true; car.add(trail);
     });
+    /* ---------- Lackierung und Anbauteile ---------- */
+    var stripeMat = new THREE.MeshPhysicalMaterial({ color: D.i === 0 ? 0xf2f4f8 : D.accent, metalness: 0.3, roughness: 0.3, clearcoat: 1,
+      polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    function seg(x0, y0, x1, y1, z, wdt, mat) {
+      var dx = x1 - x0, dy = y1 - y0, len = Math.sqrt(dx * dx + dy * dy);
+      var m = addBox(car, len + 0.01, 0.012, wdt, (x0 + x1) / 2, (y0 + y1) / 2, z, mat);
+      m.rotation.z = Math.atan2(dy, dx); return m;
+    }
+    function hoodPts() {
+      var pts = [], x0 = 2.27, y0 = P.nose, cx = (2.28 + P.cabF) / 2 + 0.2, cy = P.hood - 0.08, x1 = P.cabF - 0.1, y1 = P.hood;
+      for (var k = 0; k <= 7; k++) { var t = k / 7, a = (1 - t) * (1 - t), b = 2 * (1 - t) * t, c = t * t; pts.push([a * x0 + b * cx + c * x1, a * y0 + b * cy + c * y1 + 0.05]); }
+      return pts;
+    }
+    function deckY(x) { return x > -1.2 ? P.belt : P.belt + (P.tail - P.belt) * (-1.2 - x) / 0.9; }
+    /* Rennstreifen über Haube, Dach und Heck (einfach breit oder doppelt), bei jedem dritten Auto ein Seitenstreifen */
+    var liv = D.i % 3;
+    if (liv < 2) {
+      var zs = liv === 0 ? [-0.19, 0.19] : [0], wd = liv === 0 ? 0.13 : 0.34;
+      zs.forEach(function (z) {
+        var hp = hoodPts();
+        for (var k = 1; k < hp.length; k++) seg(hp[k - 1][0], hp[k - 1][1], hp[k][0], hp[k][1], z, wd, stripeMat);
+        var rl = P.roofF - P.roofR + 0.2, rc = (P.roofF + P.roofR) / 2;
+        addBox(car, rl, 0.012, wd, rc, P.roof + 0.066, z, stripeMat);
+        var xa = P.cabR - 0.03, xb = -2.08;
+        if (xa > -1.2) { seg(xa, P.belt + 0.05, -1.2, P.belt + 0.05, z, wd, stripeMat); xa = -1.2; }
+        seg(xa, deckY(xa) + 0.05, xb, deckY(xb) + 0.05, z, wd, stripeMat);
+      });
+    } else {
+      [-1, 1].forEach(function (s) {
+        var prev = null;
+        for (var k = 0; k <= 6; k++) {
+          var x = -1.15 + k / 6 * 2.15, u = x / 2.25, zz = (P.w / 2 + 0.06) * (1 - 0.13 * u * u) * (1 - 0.18 * 0.13) + 0.006;
+          if (prev) { var m = addBox(car, Math.hypot(x - prev[0], zz - prev[1]) + 0.01, 0.06, 0.012, (x + prev[0]) / 2, 0.63, s * (zz + prev[1]) / 2, stripeMat);
+            m.rotation.y = -s * Math.atan2(zz - prev[1], x - prev[0]); }
+          prev = [x, zz];
+        }
+      });
+    }
+    /* Leuchtband am Heck, Akzentlinie am Kühlergrill, zweifarbiges Dach */
+    if (D.tier >= 1) {
+      addBox(car, 0.04, 0.016, 0.66, -2.3, tailY, 0, tailMat);
+      addBox(car, 0.066, 0.012, 1.0, 2.3, P.nose - 0.055, 0, neon);
+    }
+    if (D.tier >= 1 && D.i % 2 === 1) roofPanel(car, P, roofGloss);
+    /* Sticker aus der Kartensammlung: groß auf dem Dach und an beiden Türen */
+    var stk = stickerFor(D.i);
+    if (stk) {
+      var sm = stickerMat(stk), bm = new THREE.MeshStandardMaterial({ color: RARITIES[stk.r].color, roughness: 0.4,
+        polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
+      var rh = Math.min(0.64, (P.roofF - P.roofR + 0.2) * 0.8), rw = rh * 0.75;
+      var roofG = new THREE.PlaneGeometry(rw, rh); roofG.rotateZ(-Math.PI / 2); roofG.rotateX(-Math.PI / 2);
+      var roofB = new THREE.PlaneGeometry(rw + 0.05, rh + 0.05); roofB.rotateZ(-Math.PI / 2); roofB.rotateX(-Math.PI / 2);
+      var rx = (P.roofF + P.roofR) / 2;
+      var b1 = new THREE.Mesh(roofB, bm); b1.position.set(rx, P.roof + 0.073, 0); car.add(b1);
+      var s1 = new THREE.Mesh(roofG, sm); s1.position.set(rx, P.roof + 0.078, 0); car.add(s1);
+      [-1, 1].forEach(function (s) {
+        var dh = 0.4, dw = 0.3, zz = (P.w / 2 + 0.06) + 0.008;
+        var dg = new THREE.PlaneGeometry(dw, dh), dbg = new THREE.PlaneGeometry(dw + 0.04, dh + 0.04);
+        var d1 = new THREE.Mesh(dbg, bm), d2 = new THREE.Mesh(dg, sm);
+        d1.position.set(0.3, 0.46, s * zz); d2.position.set(0.3, 0.46, s * (zz + 0.004));
+        if (s < 0) { d1.rotation.y = Math.PI; d2.rotation.y = Math.PI; }
+        car.add(d1); car.add(d2);
+      });
+    }
     if (D.tier >= 1) parts.push(addBox(car, D.tier >= 3 ? 0.5 : 0.36, 0.03, D.tier >= 3 ? P.w : P.w - 0.16, -1.95, wingY, 0, paint));
     if (D.tier >= 3) addBox(car, 0.5, 0.1, 0.34, (P.roofF + P.roofR) / 2 - 0.15, P.roof + 0.11, 0, dark);
     [[FX, wz], [FX, -wz], [RX, wz], [RX, -wz]].forEach(function (p) { heroWheel(car, p[0], WY, p[1], wheels, D.tier >= 3 ? neon : null); });
@@ -1911,6 +1983,42 @@
     var have = CARDS_DEF.filter(function (c) { return (save.cards[c.id] | 0) > 0; }).length;
     $('g-cards').textContent = have + '/' + CARDS_DEF.length;
   }
+  /* ---------- Sticker: gesammelte Karten auf Autos ---------- */
+  var stickerTex = {}, stickerMats = {};
+  function stickerMat(cd) {
+    if (stickerMats[cd.id]) return stickerMats[cd.id];
+    var tex = new THREE.TextureLoader().load(cardSrc(cd), function (t) {
+      /* Wie bei den Karten: Bild füllt das Hochformat, Überstand wird abgeschnitten */
+      var a = t.image.width / t.image.height, tgt = 0.75;
+      if (a > tgt) { t.repeat.set(tgt / a, 1); t.offset.set((1 - tgt / a) / 2, 0); }
+      else { t.repeat.set(1, a / tgt); t.offset.set(0, (1 - a / tgt) / 2); }
+      t.needsUpdate = true;
+    });
+    tex.encoding = THREE.sRGBEncoding; tex.anisotropy = MAXANISO;
+    stickerTex[cd.id] = tex;
+    return (stickerMats[cd.id] = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.35, metalness: 0,
+      polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }));
+  }
+  function ownedCards() { return CARDS_DEF.filter(function (c) { return ALL_OPEN || (save.cards[c.id] | 0) > 0; }); }
+  function stickerFor(i) {
+    var id = save.stickers && save.stickers[i];
+    if (!id) return null;
+    var cd = ownedCards().filter(function (c) { return c.id === id; })[0];
+    return cd || null;
+  }
+  function showSticker() {
+    var cd = stickerFor(sel), n = ownedCards().length;
+    $('stk-text').textContent = cd ? 'Sticker: ' + cd.name : (n ? 'Sticker: keiner' : 'Sticker: erst Karten sammeln');
+    $('stk-prev').disabled = $('stk-next').disabled = !n;
+  }
+  function stepSticker(d) {
+    var list = [null].concat(ownedCards()), cur = stickerFor(sel), k = 0;
+    for (var i = 0; i < list.length; i++) if (list[i] && cur && list[i].id === cur.id) k = i;
+    var nx = list[(k + d + list.length) % list.length];
+    if (!save.stickers) save.stickers = {};
+    if (nx) save.stickers[sel] = nx.id; else delete save.stickers[sel];
+    persist(); select(sel);
+  }
   function openColl() {
     var grid = $('coll-grid'); grid.textContent = '';
     var have = 0;
@@ -1995,6 +2103,7 @@
       if (Array.isArray(rawSave.bests)) save.bests = [rawSave.bests[0] | 0, rawSave.bests[1] | 0, rawSave.bests[2] | 0, rawSave.bests[3] | 0];
       save.mode = ((rawSave.mode | 0) % 4 + 4) % 4;
       if (rawSave.cards && typeof rawSave.cards === 'object') save.cards = rawSave.cards;
+      if (rawSave.stickers && typeof rawSave.stickers === 'object') save.stickers = rawSave.stickers;
       if (rawSave.keys && typeof rawSave.keys === 'object') {
         var keysOk = true;
         for (var ka in DEF_KEYS) if (typeof rawSave.keys[ka] !== 'string') keysOk = false;
@@ -2006,6 +2115,7 @@
   if (!save.bests) save.bests = [save.bestScore | 0, 0, 0, 0];
   if (!save.mode) save.mode = 0;
   if (!save.cards || typeof save.cards !== 'object') save.cards = {};
+  if (!save.stickers || typeof save.stickers !== 'object') save.stickers = {};
 
   /* ---------- Modi und Ränge ---------- */
   var MODES = [
@@ -2184,6 +2294,8 @@
   function closeKeys() { keysOpen = false; capture = null; $('keys').hidden = true; }
   renderKeys();
   $('coll-open').addEventListener('click', openColl);
+  $('stk-prev').addEventListener('click', function () { stepSticker(-1); });
+  $('stk-next').addEventListener('click', function () { stepSticker(1); });
   $('coll-close').addEventListener('click', function () { $('coll').hidden = true; });
   $('keys-open').addEventListener('click', function () { keysOpen = true; capture = null; $('keys').hidden = false; renderKeys(); });
   $('keys-done').addEventListener('click', closeKeys);
@@ -2265,6 +2377,7 @@
     player = buildHero(D);
     bendify(player.group);
     $('c-idx').textContent = 'Auto ' + (sel + 1) + ' / 20';
+    showSticker();
     $('c-name').textContent = D.name;
     $('c-skill').textContent = D.skill ? D.skill.name : 'Keine';
     $('c-skill').classList.toggle('none', !D.skill);
@@ -2529,7 +2642,7 @@
     if (bump) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
   }
   function updateNext() {
-    var el = $('next');
+    var el = $('next-prog');
     if (ALL_OPEN || nextIdx >= CARS.length) { el.hidden = true; return; }
     var need = CARS[nextIdx].need, prev = nextIdx > 0 ? CARS[nextIdx - 1].need : 0;
     el.hidden = false;
