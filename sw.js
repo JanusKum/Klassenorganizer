@@ -1,4 +1,4 @@
-var CACHE = 'klassenorganisierer-v39';
+var CACHE = 'klassenorganisierer-v40';
 var CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(CORE); }).then(function () { return self.skipWaiting(); }));
@@ -21,7 +21,9 @@ self.addEventListener('fetch', function (e) {
     return res;
   }
   if (own) {
-    e.respondWith(fetch(e.request).then(store).catch(function () { return caches.match(e.request); }));
+    /* no-cache: GitHub lässt Seiten sonst 10 Minuten im Browser-Speicher, dann käme die alte Version */
+    e.respondWith(fetch(e.request.url, { cache: 'no-cache', credentials: 'same-origin' }).then(function (res) { return res.ok ? store(res) : res; })
+      .catch(function () { return caches.match(e.request, { ignoreSearch: true }); }));
   } else {
     e.respondWith(caches.match(e.request).then(function (hit) { return hit || fetch(e.request).then(store); }));
   }

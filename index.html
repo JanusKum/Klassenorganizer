@@ -4638,7 +4638,14 @@
 })();
 </script>
 <script>
-  if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(function () {}); }
+  /* Neue Versionen sofort laden: beim Zurückkehren in die App nach Updates schauen und dann einmal neu laden */
+  if ('serviceWorker' in navigator) {
+    var hadCtl = !!navigator.serviceWorker.controller, swReloaded = false;
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') reg.update().catch(function () {}); });
+    }).catch(function () {});
+    navigator.serviceWorker.addEventListener('controllerchange', function () { if (hadCtl && !swReloaded) { swReloaded = true; location.reload(); } });
+  }
 </script>
 </body>
 </html>
