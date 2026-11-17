@@ -2147,7 +2147,9 @@
     RARITIES.forEach(function (r) { total += r.w; });
     var x = Math.random() * total, ri = 0;
     for (i = 0; i < RARITIES.length; i++) { x -= RARITIES[i].w; if (x < 0) { ri = i; break; } }
-    var pool = CARDS_DEF.filter(function (c) { return c.r === ri; }), pw = 0;
+    /* Nur Karten, die man noch nicht hat. Ist diese Seltenheit schon komplett, gibt es diesmal keine Karte. */
+    var pool = CARDS_DEF.filter(function (c) { return c.r === ri && !(save.cards[c.id] | 0); }), pw = 0;
+    if (!pool.length) return null;
     pool.forEach(function (c) { pw += c.w || 1; });
     var y = Math.random() * pw;
     for (i = 0; i < pool.length; i++) { y -= pool[i].w || 1; if (y < 0) return pool[i]; }
@@ -2203,7 +2205,6 @@
       if (n) {
         have++;
         var im = document.createElement('img'); im.alt = cd.name; im.src = cardSrc(cd); f.appendChild(im);
-        var c = document.createElement('span'); c.className = 'cnt'; c.textContent = 'x' + n; f.appendChild(c);
       } else f.textContent = '?';
       var rn = document.createElement('div'); rn.className = 'rn'; rn.textContent = rar.name;
       var nn = document.createElement('div'); nn.className = 'nn'; nn.textContent = n ? cd.name : '???';
@@ -2214,8 +2215,10 @@
   }
   function dropCard() {
     if (dropBusy) { if (dropQ.length < 2) dropQ.push(1); return; }
-    var cd = rollCard(), rar = RARITIES[cd.r], el = $('drop'), isNew = !(save.cards[cd.id] | 0);
-    save.cards[cd.id] = (save.cards[cd.id] | 0) + 1; persist();
+    var cd = rollCard();
+    if (!cd) return;
+    var rar = RARITIES[cd.r], el = $('drop'), isNew = true;
+    save.cards[cd.id] = 1; persist();
     dropBusy = true;
     el.style.setProperty('--rc', rar.color);
     $('drop-img').src = cardSrc(cd);
@@ -2276,7 +2279,7 @@
       save.swap = !!rawSave.swap; save.bestScore = rawSave.bestScore | 0; save.snd = rawSave.snd !== false;
       if (Array.isArray(rawSave.bests)) save.bests = [rawSave.bests[0] | 0, rawSave.bests[1] | 0, rawSave.bests[2] | 0, rawSave.bests[3] | 0];
       save.mode = ((rawSave.mode | 0) % 4 + 4) % 4;
-      if (rawSave.cards && typeof rawSave.cards === 'object') save.cards = rawSave.cards;
+      if (rawSave.cards && typeof rawSave.cards === 'object') { save.cards = {}; for (var ck in rawSave.cards) if ((rawSave.cards[ck] | 0) > 0) save.cards[ck] = 1; }
       if (rawSave.stickers && typeof rawSave.stickers === 'object') save.stickers = rawSave.stickers;
       save.kname = typeof rawSave.kname === 'string' ? rawSave.kname.slice(0, 12) : ''; save.kartWins = rawSave.kartWins | 0; save.kartTime = +rawSave.kartTime || 0;
       if (rawSave.keys && typeof rawSave.keys === 'object') {
