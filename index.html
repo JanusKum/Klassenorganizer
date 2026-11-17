@@ -448,6 +448,23 @@
   .kcheck input { width: 20px; height: 20px; accent-color: var(--accent); }
   .kresw { background: rgba(6, 10, 20, 0.35); }
   @media (max-height: 520px) { .kart-open { margin-top: 4px; height: 34px; font-size: 15px; } .kpos b { font-size: 48px; } }
+  .kcoin { display: inline-flex; align-items: center; gap: 4px; margin-top: 2px; font-size: 15px; color: #ffd54a; }
+  .kcoin b { font-size: 18px; }
+  .kcoin i { width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff3b0, #ffc83a 45%, #c98a10); box-shadow: 0 0 8px rgba(255, 200, 58, 0.7); }
+  .kglow {
+    position: fixed; top: var(--vvt, 0px); left: 0; width: var(--vw, 100%); height: var(--vvh, 100%); pointer-events: none; opacity: 0; --gc: #ffb23e;
+    box-shadow: inset 0 0 90px 30px var(--gc);
+  }
+  .kglow.fx { animation: kglow 0.9s ease-out forwards; }
+  @keyframes kglow { 0% { opacity: 0.95; } 100% { opacity: 0; } }
+  .kpop {
+    position: fixed; left: 0; width: var(--vw, 100%); top: calc(var(--vvt, 0px) + var(--vvh, 100vh) * 0.5); text-align: center; pointer-events: none; opacity: 0; --pc: #ffb23e;
+    font: 700 clamp(30px, 9vw, 54px) var(--display); text-transform: uppercase; letter-spacing: 0.04em; color: var(--pc);
+    -webkit-text-stroke: 2px rgba(10, 10, 20, 0.85); text-shadow: 0 0 24px var(--pc), 0 4px 14px rgba(0, 0, 0, 0.6);
+  }
+  .kpop.fx { animation: kpop 1.1s cubic-bezier(.2, .9, .3, 1.3) forwards; }
+  @keyframes kpop { 0% { opacity: 0; transform: scale(0.4) rotate(-6deg); } 14% { opacity: 1; transform: scale(1.15) rotate(2deg); } 24% { transform: scale(1) rotate(0); } 75% { opacity: 1; } 100% { opacity: 0; transform: translateY(-30px) scale(1.05); } }
+  @media (prefers-reduced-motion: reduce) { .kglow { display: none; } }
 </style>
 <style>
   /* Als App: Seite fest am sichtbaren Bildschirm, Abstand zu Notch und Home-Balken */
@@ -503,7 +520,7 @@
 <div id="khud" class="khud" hidden>
   <div class="kh-l">
     <div class="kpos"><b id="kh-pos">1</b><span id="kh-of">/6</span></div>
-    <div class="klap"><b id="kh-lap">Runde 1/3</b><span id="kh-time">0:00.0</span><span id="kh-kmh">0 km/h</span></div>
+    <div class="klap"><b id="kh-lap">Runde 1/3</b><span id="kh-time">0:00.0</span><span id="kh-kmh">0 km/h</span><span class="kcoin"><i></i><b id="kh-coin">0</b>/10</span></div>
   </div>
   <div id="kh-item" class="kitem empty"><span class="kq">?</span></div>
   <div class="kh-r">
@@ -511,7 +528,9 @@
     <canvas id="kmini" class="kmini" width="264" height="264" aria-label="Streckenkarte"></canvas>
   </div>
 </div>
+<div id="kglow" class="kglow"></div>
 <div id="kcount" class="kcount"></div>
+<div id="kpop" class="kpop"></div>
 <div id="kwrong" class="kwrong" hidden>Falsche Richtung</div>
 <div id="kmenu" class="kmenu" hidden>
   <div class="kbox">
@@ -533,7 +552,7 @@
       <p id="k-wait" class="khelp">Warte, bis der Raum-Ersteller das Rennen startet …</p>
     </div>
     <p id="k-status" class="kstatus" role="status"></p>
-    <p class="khelp kkeys">Steuern: links und rechts lenken, Gas gibt es automatisch. <b>Drift</b> gedrückt halten und lenken: Funken laden einen Boost (blau, orange, lila). <b>Item</b> benutzt, was du aus den bunten Boxen hast. Tastatur: Pfeile, Shift für Drift, Leertaste für Item.</p>
+    <p class="khelp kkeys">Steuern: links und rechts lenken, Gas gibt es automatisch. <b>Drift</b> gedrückt halten und lenken: Funken laden einen Boost (blau, orange, lila). <b>Item</b> benutzt, was du aus den bunten Boxen hast. Münzen machen dich schneller. Drift genau bei der „1“ = Raketenstart. Tastatur: Pfeile, Shift für Drift, Leertaste für Item.</p>
     <button id="k-back" class="kbtn ghost" type="button">Zurück</button>
   </div>
 </div>
@@ -3042,7 +3061,7 @@
   var KP = [[0,0],[90,-6],[170,10],[225,55],[235,120],[200,170],[150,175],[120,140],[95,95],[55,90],[30,130],[45,190],[110,230],[200,245],[285,225],[330,170],[345,90],[330,10],[285,-55],[210,-95],[120,-110],[30,-100],[-45,-70],[-80,-15],[-60,10]];
   var KS = [], KN = 0, KSP = 1.6;
   (function () {
-    var P = KP.map(function (p) { return [p[0] * 0.72, p[1] * 0.72]; }), n = P.length, pts = [];
+    var P = KP.map(function (p) { return [p[0] * 0.85, p[1] * 0.85]; }), n = P.length, pts = [];
     function cr(a, b, c, d, t) {
       var t2 = t * t, t3 = t2 * t;
       return [0, 1].map(function (i) { return 0.5 * (2 * b[i] + (-a[i] + c[i]) * t + (2 * a[i] - 5 * b[i] + 4 * c[i] - d[i]) * t2 + (-a[i] + 3 * b[i] - 3 * c[i] + d[i]) * t3); });
@@ -3087,7 +3106,7 @@
   };
 
   /* ---------- Welt bauen (erst beim ersten Öffnen) ---------- */
-  var KW = { built: false, boxes: [], bananas: [], rockets: [], sun: null };
+  var KW = { built: false, boxes: [], bananas: [], rockets: [], coins: [], sun: null };
   function kRibbon(o1, o2, y1, y2, vLen, mat) {
     var pos = [], uv = [], idx = [], acc = 0;
     for (var i = 0; i <= KN; i++) {
@@ -3234,6 +3253,17 @@
         KW.boxes.push({ m: m, x: s.x + s.nx * lat, z: s.z + s.nz * lat, on: true, t: 0, ph: Math.random() * 6 });
       });
     });
+    /* Münzen: jede macht dich etwas schneller (max. 10) */
+    KW.coins = [];
+    var coinG = new THREE.CylinderGeometry(0.55, 0.55, 0.14, 18), coinM = new THREE.MeshStandardMaterial({ color: 0xffc83a, metalness: 0.9, roughness: 0.25, emissive: 0x664400, emissiveIntensity: 0.6 });
+    [0.06, 0.19, 0.31, 0.49, 0.6, 0.77, 0.93].forEach(function (f, row) {
+      for (var c = 0; c < 5; c++) {
+        var i = wrapI(Math.round(f * KN) + c * 4), s = KS[i], lat = (row % 3 - 1) * 4 + (row % 2 ? (c - 2) * 0.9 : 0);
+        var m = new THREE.Mesh(coinG, coinM); m.rotation.order = 'YXZ'; m.rotation.x = Math.PI / 2;
+        m.position.set(s.x + s.nx * lat, 1.0, s.z + s.nz * lat); m.castShadow = true; kartScene.add(m);
+        KW.coins.push({ m: m, x: s.x + s.nx * lat, z: s.z + s.nz * lat, on: true, t: 0, ph: c * 0.5 });
+      }
+    });
     /* Bananen und Raketen (Vorrat) */
     var banG = new THREE.TorusGeometry(0.5, 0.17, 6, 12, Math.PI * 0.95), banM = new THREE.MeshStandardMaterial({ color: 0xffd52a, roughness: 0.45, emissive: 0x332600 });
     for (var bI = 0; bI < 16; bI++) {
@@ -3259,7 +3289,7 @@
   /* ---------- Karts ---------- */
   var KR = { karts: [], me: null, phase: 'none', t: 0, time: 0, mode: 'solo', seq: 0, resT: 0, camH: 0, camI: 0, shake: 0, lastPos: 0, lastLap: 0, wrongT: 0, rollTick: 0 };
   function kartStats(Dk) {
-    return { top: 25.5 + (Dk.top - 52) / 54 * 4.5, acc: 10 + (Dk.acc - 9) / 25 * 5, turn: 1.8 + (Dk.grip - 7) / 6.6 * 0.35 };
+    return { top: 32 + (Dk.top - 52) / 54 * 5, acc: 15 + (Dk.acc - 9) / 25 * 6, turn: 2.15 + (Dk.grip - 7) / 6.6 * 0.4 };
   }
   function makeKart(o) {
     var Dk = CARS[o.car] || CARS[0], obj;
@@ -3277,7 +3307,7 @@
     var sparks = [0, 1].map(function () { var s = new THREE.Sprite(KW.sparkMats[0]); s.visible = false; kartScene.add(s); return s; });
     return { id: o.id, name: o.name, ctrl: o.ctrl, car: o.car, stk: o.stk || '', D: Dk, obj: obj, sparks: sparks,
       x: 0, z: 0, h: 0, sp: 0, idx: 0, d: 0, pr: 0, lat: 0, top: st.top, acc: st.acc, turn: st.turn, mul: 1, skill: o.ctrl === 'bot' ? rnd(0.9, 0.97) : 1,
-      item: null, roll: 0, rollShow: 0, boost: 0, drift: 0, dch: 0, dlv: 0, dHeld: false, hop: 0, hopT: 0, spin: 0, spinMax: 1, flip: 0, shield: 0,
+      item: null, roll: 0, rollShow: 0, boost: 0, boostLv: 0, coins: 0, drift: 0, dch: 0, dlv: 0, dHeld: false, hop: 0, hopT: 0, spin: 0, spinMax: 1, flip: 0, shield: 0,
       fin: null, place: 0, net: null, lane: rnd(-4, 4), laneTo: 0, laneT: 0, itemT: 0, wheelA: 0, look: 0, steerV: 0, steerIn: 0, bumpT: 0, padT: 0 };
   }
   function disposeKart(k) {
@@ -3287,6 +3317,7 @@
     disposeCar(k.obj);
   }
   function clearKarts() {
+    var r = $('rush'); if (r) r.style.opacity = '0';
     KR.karts.forEach(disposeKart); KR.karts = []; KR.me = null;
     KW.bananas.forEach(function (b) { b.on = false; b.m.visible = false; });
     KW.rockets.forEach(function (r) { r.on = false; r.m.visible = false; });
@@ -3310,7 +3341,8 @@
       KR.karts.push(k);
       if (ctrl === 'me') KR.me = k;
     });
-    KR.phase = 'count'; KR.t = 0; KR.time = 0; KR.resT = 0; KR.lastLap = 0; KR.lastPos = 0; KR.wrongT = 0; KR.finAnn = false;
+    KR.phase = 'count'; KR.t = 0; KR.rsWas = false; KR.rsAt = -1; KR.kick = 0;
+    KW.coins.forEach(function (c) { c.on = true; c.t = 0; c.m.visible = true; }); KR.time = 0; KR.resT = 0; KR.lastLap = 0; KR.lastPos = 0; KR.wrongT = 0; KR.finAnn = false;
     KR.camH = KR.me.h; KR.camX = null;
     $('kres').hidden = true; $('kmenu').hidden = true;
     $('khud').hidden = false; $('pad').hidden = false; $('hud').hidden = true; $('garage').hidden = true;
@@ -3357,7 +3389,22 @@
     var want = Math.atan2(s.z + s.nz * k.lane - k.z, s.x + s.nx * k.lane - k.x), dh = wrapA(want - k.h);
     return { steer: Math.max(-1, Math.min(1, dh * 3.2)), brake: Math.abs(dh) > 1.0 && k.sp > 12, drift: false };
   }
-  function kartBoost(k, t) { k.boost = Math.max(k.boost, t); if (k === KR.me) { hiss(0.3, 0.08); tone(500, 0.3, 'sawtooth', 0.08, 0, 1400); } }
+  var BOOST_COL = ['#ffb23e', '#4fb8ff', '#ffa030', '#d060ff'], BOOST_HEX = [0xffa030, 0x4fb8ff, 0xff8a1a, 0xd060ff];
+  function kartBoost(k, t, lv, label) {
+    k.boost = Math.max(k.boost, t); k.boostLv = lv || 0;
+    k.obj.flameMat.color.setHex(BOOST_HEX[k.boostLv]);
+    if (k !== KR.me) return;
+    KR.kick = 1; KR.shake = Math.max(KR.shake, 0.18 + (lv || 0) * 0.08);
+    hiss(0.45, 0.12); noise(0.35, 0.25, 500); tone(380, 0.45, 'sawtooth', 0.1, 0, 1500 + (lv || 0) * 300);
+    if (lv >= 2) tone(1568, 0.25, 'square', 0.06, 0.08);
+    buzz(lv >= 3 ? 90 : 50);
+    var g = $('kglow'); g.style.setProperty('--gc', BOOST_COL[k.boostLv]); g.classList.remove('fx'); void g.offsetWidth; g.classList.add('fx');
+    if (label) kPop(label, BOOST_COL[k.boostLv]);
+  }
+  function kPop(text, col) {
+    var e = $('kpop'); e.textContent = text; e.style.setProperty('--pc', col || '#ffb23e');
+    e.classList.remove('fx'); void e.offsetWidth; e.classList.add('fx');
+  }
   function driveKart(k, inp, dt) {
     var go = KR.phase === 'race';
     k.steerIn = inp.steer;
@@ -3366,33 +3413,38 @@
     if (k.shield > 0) k.shield -= dt;
     var off = Math.abs(k.lat) > KHW + 1.0;
     if (k.boost > 0) k.boost -= dt;
-    var top = k.top * k.mul * k.skill * (off && k.boost <= 0 ? 0.55 : 1) + (k.boost > 0 ? 9 : 0);
+    var top = (k.top + k.coins * 0.35) * k.mul * k.skill * (off && k.boost <= 0 ? 0.55 : 1) + (k.boost > 0 ? 12 + k.boostLv * 1.5 : 0);
     if (k.fin !== null && k.ctrl === 'bot') top *= 0.8;
     if (!go) top = 0;
     if (inp.brake) { k.sp -= (k.sp > 0 ? 30 : 8) * dt; if (k.sp < -9) k.sp = -9; }
-    else if (k.sp < top) k.sp = Math.min(top, k.sp + k.acc * (k.boost > 0 ? 3 : 1) * (1 - Math.max(0, k.sp) / (top + 8) * 0.55) * dt);
+    else if (k.sp < top) k.sp = Math.min(top, k.sp + k.acc * (k.boost > 0 ? 4 : 1) * (1 - Math.max(0, k.sp) / (top + 8) * 0.5) * dt);
     else k.sp = Math.max(top, k.sp - (go ? 16 : 30) * dt);
     /* Driften: Taste drücken = kleiner Hüpfer, mit Lenken in die Kurve rutschen. Je länger, desto stärker der Boost. */
-    if (inp.drift && !k.dHeld) { k.dHeld = true; if (k.spin <= 0) { k.hop = 0.26; k.hopT = 0.26; if (k === KR.me) tone(260, 0.07, 'sine', 0.08); } }
-    if (k.dHeld && !k.drift && k.hop > 0 && inp.steer !== 0 && k.sp > 12 && !off && go) { k.drift = inp.steer > 0 ? 1 : -1; k.dch = 0; k.dlv = 0; }
+    /* Drift: Taste halten. Sobald du dabei lenkst, rutscht das Kart in die Kurve (egal ob zuerst Drift oder zuerst Lenken). */
+    if (inp.drift && !k.dHeld) { k.dHeld = true; if (k.spin <= 0 && go) { k.hop = 0.2; k.hopT = 0.2; if (k === KR.me) tone(240, 0.08, 'sine', 0.1, 0, 320); } }
+    if (k.dHeld && !k.drift && inp.steer !== 0 && k.sp > 14 && Math.abs(k.lat) < KHW + 2.4 && go && k.spin <= 0) {
+      k.drift = inp.steer > 0 ? 1 : -1; k.dch = 0; k.dlv = 0;
+      if (k.hop <= 0) { k.hop = 0.18; k.hopT = 0.18; }
+      if (k === KR.me) noise(0.25, 0.12, 2200);
+    }
     if (!inp.drift && k.dHeld) {
       k.dHeld = false;
-      if (k.drift && k.dlv > 0) { kartBoost(k, [0, 0.6, 1.0, 1.45][k.dlv]); }
+      if (k.drift && k.dlv > 0) kartBoost(k, [0, 0.9, 1.4, 2.1][k.dlv], k.dlv, ['', 'Mini-Turbo', 'Super-Turbo', 'Ultra-Turbo'][k.dlv]);
       k.drift = 0; k.dlv = 0;
     }
-    if (k.drift && (k.sp < 9 || off)) { k.drift = 0; k.dlv = 0; }
+    if (k.drift && (k.sp < 10 || Math.abs(k.lat) > KHW + 2.4)) { k.drift = 0; k.dlv = 0; }
     var yaw, sf = Math.min(1, Math.abs(k.sp) / 9) * (k.sp < 0 ? -1 : 1), tb = k.turn / 1.9;
     if (k.drift) {
       var s = inp.steer * k.drift;
-      yaw = k.drift * (1.3 + 0.62 * s) * tb;
-      k.dch += dt * (1 + 0.7 * Math.max(0, s));
-      var lv = k.dch > 2.5 ? 3 : k.dch > 1.5 ? 2 : k.dch > 0.7 ? 1 : 0;
-      if (lv > k.dlv) { k.dlv = lv; if (k === KR.me) tone(700 + lv * 260, 0.09, 'triangle', 0.1); }
+      yaw = k.drift * (1.05 + 0.8 * s) * tb;
+      k.dch += dt * (1 + 0.6 * Math.max(0, s));
+      var lv = k.dch > 1.9 ? 3 : k.dch > 1.1 ? 2 : k.dch > 0.45 ? 1 : 0;
+      if (lv > k.dlv) { k.dlv = lv; if (k === KR.me) { tone(780 + lv * 300, 0.12, 'triangle', 0.13); tone(1170 + lv * 450, 0.1, 'sine', 0.08, 0.05); buzz(15); } }
     } else yaw = inp.steer * k.turn * (1 - Math.min(0.22, Math.max(0, k.sp - 20) / 40));
     k.h = wrapA(k.h + yaw * sf * dt);
     var fx = Math.cos(k.h), fz = Math.sin(k.h);
     k.x += fx * k.sp * dt; k.z += fz * k.sp * dt;
-    if (k.drift) { var sl = -k.drift * k.sp * 0.11 * dt; k.x += -fz * sl; k.z += fx * sl; }
+    if (k.drift) { var sl = -k.drift * k.sp * 0.035 * dt; k.x += -fz * sl; k.z += fx * sl; }
     kartTrack(k, true);
   }
   function kFind(k) {
@@ -3417,9 +3469,11 @@
       k.x += s.nx * push; k.z += s.nz * push; k.lat = sg * lim;
       var fn = (Math.cos(k.h) * s.nx + Math.sin(k.h) * s.nz) * sg;
       if (fn > 0) {
-        k.sp *= 1 - Math.min(0.55, fn * 0.8);
+        /* weich an der Bande entlang abgleiten statt hängen zu bleiben */
+        k.sp *= 1 - Math.min(0.35, fn * 0.5);
         var th = Math.atan2(s.tz, s.tx); if (Math.abs(wrapA(th - k.h)) > Math.PI / 2) th = wrapA(th + Math.PI);
-        k.h = wrapA(k.h + wrapA(th - k.h) * Math.min(1, fn * 1.2));
+        k.h = wrapA(th - sg * 0.04);
+        if (fn > 0.35) { k.drift = 0; k.dlv = 0; }
         if (k === KR.me && fn > 0.25 && k.bumpT <= 0) { k.bumpT = 0.4; noise(0.18, 0.3, 900); buzz(30); KR.shake = 0.25; }
       }
     }
@@ -3428,7 +3482,7 @@
     if (k.padT > 0) k.padT -= KR.dt;
     for (var p = 0; p < KPAD_AT.length; p++) {
       var dd = wrapI(k.idx - KPAD_AT[p]);
-      if ((dd < 3 || dd > KN - 3) && Math.abs(k.lat) < 3.1 && k.padT <= 0) { k.padT = 0.6; kartBoost(k, 1.0); }
+      if ((dd < 3 || dd > KN - 3) && Math.abs(k.lat) < 3.1 && k.padT <= 0) { k.padT = 0.6; kartBoost(k, 1.2, 0, 'Boost!'); }
     }
   }
   function kartCollide() {
@@ -3450,7 +3504,7 @@
     var it = k.item, fx = Math.cos(k.h), fz = Math.sin(k.h);
     k.item = null;
     if (k === KR.me) kShowItem(true);
-    if (it === 'turbo') kartBoost(k, 1.5);
+    if (it === 'turbo') kartBoost(k, 1.8, 0, 'Turbo!');
     else if (it === 'shield') { k.shield = 8; if (k === KR.me) SFX.pick(); }
     else if (it === 'banana') {
       var e = { k: 'ban', id: NET.myId + '-' + (++KR.seq), x: k.x - fx * 3.4, z: k.z - fz * 3.4 };
@@ -3481,10 +3535,15 @@
     var b = KW.booms.filter(function (q) { return q.t <= 0; })[0] || KW.booms[0];
     b.t = 0.5; b.big = big ? 1.6 : 1; b.s.visible = true; b.s.position.set(x, 1.2, z);
   }
+  function myHit(id) {
+    if (!KR.me || String(id).indexOf(NET.myId + '-') !== 0) return;
+    kPop('Treffer!', '#ff4a36'); SFX.combo(); tone(1568, 0.2, 'square', 0.07, 0.12); buzz(40);
+  }
   function kartHit(k, kind) {
     if (k.shield > 0) { k.shield = 0; if (k === KR.me) { tone(900, 0.2, 'sine', 0.12, 0, 400); pop('Schild hält', ''); } return; }
     k.spin = kind === 'rok' ? 1.5 : 1.0; k.spinMax = k.spin; k.flip = kind === 'rok' ? 1 : 0;
     k.drift = 0; k.dlv = 0; k.boost = 0;
+    if (k === KR.me && k.coins > 0) { var lost = Math.min(3, k.coins); k.coins -= lost; pop('-' + lost + ' Münzen', 'red'); }
     if (k === KR.me) { SFX.hit(); flash('hit'); buzz(140); KR.shake = 0.6; pop(kind === 'rok' ? 'Rakete!' : 'Banane!', 'red'); }
   }
   function updateItems(dt) {
@@ -3510,8 +3569,22 @@
       KW.bananas.forEach(function (b) {
         if (!b.on) return;
         var dx = b.x - k.x, dz = b.z - k.z;
-        if (dx * dx + dz * dz < 1.7 * 1.7 && k.spin <= 0) { b.on = false; b.m.visible = false; netEvent({ k: 'gone', id: b.id }); kartHit(k, 'ban'); }
+        if (dx * dx + dz * dz < 1.7 * 1.7 && k.spin <= 0) { b.on = false; b.m.visible = false; netEvent({ k: 'gone', id: b.id }); kartHit(k, 'ban'); if (k !== KR.me) myHit(b.id); }
       });
+    });
+    /* Münzen */
+    var me = KR.me;
+    KW.coins.forEach(function (c) {
+      if (!c.on) { c.t -= dt; if (c.t <= 0) { c.on = true; c.m.visible = true; } return; }
+      c.m.rotation.y = time * 3 + c.ph; c.m.position.y = 1.0 + Math.sin(time * 3 + c.ph) * 0.15;
+      if (!me || state !== 'kart') return;
+      var dx = c.x - me.x, dz = c.z - me.z;
+      if (dx * dx + dz * dz < 2.3 * 2.3) {
+        c.on = false; c.t = 12; c.m.visible = false;
+        if (me.coins < 10) { me.coins++; tone(1319, 0.07, 'square', 0.07); tone(1976, 0.16, 'square', 0.07, 0.06); }
+        else tone(1568, 0.06, 'square', 0.05);
+        if (me.boost < 0.15) { me.boost = 0.15; me.boostLv = 0; }
+      }
     });
     /* Raketen fliegen der Strecke entlang, kurz vor dem Ziel direkt darauf zu */
     KW.rockets.forEach(function (r) {
@@ -3525,6 +3598,7 @@
         if (l < 2.2) {
           r.on = false; r.m.visible = false; boom(tg.x, tg.z, true);
           if (isLocal(tg)) kartHit(tg, 'rok');
+          if (KR.me && r.from === KR.me.id && tg !== KR.me) myHit(NET.myId + '-');
           if (KR.me && Math.hypot(KR.me.x - tg.x, KR.me.z - tg.z) < 40) noise(0.5, 0.5, 1600);
           return;
         }
@@ -3563,7 +3637,7 @@
     var bo = k.boost > 0 ? 1 : 0;
     k.obj.trailMat.opacity = bo ? 0.6 : 0;
     k.obj.flameMat.opacity = bo ? 0.9 + Math.random() * 0.1 : 0;
-    k.obj.flames.forEach(function (f) { f.scale.setScalar(bo ? 1.4 + Math.random() * 0.8 : 0.01); });
+    k.obj.flames.forEach(function (f) { f.scale.setScalar(bo ? 2.0 + Math.random() * 1.4 + k.boostLv * 0.4 : 0.01); });
     /* Drift-Funken an den Hinterrädern */
     var on = k.drift && k.dlv > 0, fx = Math.cos(k.h), fz = Math.sin(k.h);
     k.sparks.forEach(function (s, n) {
@@ -3572,7 +3646,7 @@
       s.material = KW.sparkMats[k.dlv - 1];
       var side = n ? 1 : -1;
       s.position.set(k.x - fx * 1.9 + (-fz) * side * 0.95, 0.35, k.z - fz * 1.9 + fx * side * 0.95);
-      s.scale.setScalar(0.7 + Math.random() * 0.9 + k.dlv * 0.25);
+      s.scale.setScalar(1.0 + Math.random() * 1.3 + k.dlv * 0.45);
     });
   }
   /* Ferngesteuerte Karts glätten */
@@ -3583,7 +3657,7 @@
     var tx = n.x + Math.cos(n.h) * n.s * age, tz = n.z + Math.sin(n.h) * n.s * age;
     var far = Math.hypot(tx - k.x, tz - k.z) > 12, a = far ? 1 : Math.min(1, dt * 12);
     k.x += (tx - k.x) * a; k.z += (tz - k.z) * a; k.h = wrapA(k.h + wrapA(n.h - k.h) * a);
-    k.sp = n.s; k.boost = n.f & 1 ? 0.2 : 0; k.shield = n.f & 2 ? 1 : 0;
+    k.sp = n.s; k.boost = n.f & 1 ? 0.2 : 0; if (k.boost && n.bl !== k.boostLv) { k.boostLv = n.bl | 0; k.obj.flameMat.color.setHex(BOOST_HEX[k.boostLv]); } k.shield = n.f & 2 ? 1 : 0;
     k.drift = n.f & 4 ? 1 : n.f & 8 ? -1 : 0; k.dlv = (n.f >> 4) & 3;
     if (n.f & 64) { if (k.spin <= 0) { k.spin = (n.f & 128) ? 1.5 : 1.0; k.spinMax = k.spin; k.flip = (n.f & 128) ? 1 : 0; } } else if (k.spin > 0.3) k.spin = 0.3;
     if (k.spin > 0) k.spin -= dt;
@@ -3594,7 +3668,7 @@
   function packKart(k) {
     var f = (k.boost > 0 ? 1 : 0) | (k.shield > 0 ? 2 : 0) | (k.drift > 0 ? 4 : k.drift < 0 ? 8 : 0) | ((k.dlv & 3) << 4) | (k.spin > 0 ? 64 : 0) | (k.spin > 0 && k.flip ? 128 : 0);
     return { i: k.id, x: Math.round(k.x * 100) / 100, z: Math.round(k.z * 100) / 100, h: Math.round(k.h * 1000) / 1000, s: Math.round(k.sp * 10) / 10,
-      pr: Math.round(k.pr * 100) / 100, f: f, fin: k.fin, it: k.item };
+      pr: Math.round(k.pr * 100) / 100, f: f, fin: k.fin, it: k.item, bl: k.boostLv };
   }
   /* ---------- Rennablauf ---------- */
   function kartFrame(dt) {
@@ -3615,11 +3689,17 @@
     var me = KR.me;
     if (KR.phase === 'count') {
       var before = Math.ceil(3 - KR.t);
+      if (KR.t === 0) showToast('Bereit?', 'Drift genau bei der 1 drücken = Raketenstart');
       KR.t += dt;
-      var now = Math.ceil(3 - KR.t);
+      var now = Math.ceil(3 - KR.t), rs = kartInput(me).drift;
+      if (rs && !KR.rsWas) KR.rsAt = KR.t;
+      KR.rsWas = rs;
       if (KR.t < 0.05 || now !== before) {
         if (now > 0) { kCount(String(now)); tone(440, 0.18, 'square', 0.12); }
-        else { kCount('Los!'); tone(880, 0.4, 'square', 0.14); KR.phase = 'race'; }
+        else {
+          kCount('Los!'); tone(880, 0.4, 'square', 0.14); KR.phase = 'race';
+          if (rs && KR.rsAt >= 1.9) { me.sp = 18; kartBoost(me, 1.4, 2, 'Raketenstart!'); }
+        }
       }
     } else if (KR.phase === 'race') KR.time += dt;
     /* Fahren */
@@ -3701,7 +3781,9 @@
   }
   function kartHud(dt) {
     var me = KR.me, lap = Math.max(1, Math.min(KLAPS, Math.floor(me.d / KN) + 1));
-    if (me.place !== KR.lastPos) { KR.lastPos = me.place; var pe = $('kh-pos'); pe.textContent = me.place; pe.classList.remove('fx'); void pe.offsetWidth; pe.classList.add('fx'); }
+    if (me.place !== KR.lastPos) {
+      if (KR.lastPos && me.place < KR.lastPos && KR.phase === 'race' && KR.time > 2 && me.fin === null) { kPop(me.place === 1 ? 'Platz 1!' : 'Überholt!', me.place === 1 ? '#ffd54a' : '#ffffff'); SFX.pass(4 - Math.min(3, me.place)); }
+      KR.lastPos = me.place; var pe = $('kh-pos'); pe.textContent = me.place; pe.classList.remove('fx'); void pe.offsetWidth; pe.classList.add('fx'); }
     if (lap !== KR.lastLap && KR.phase === 'race') {
       if (KR.lastLap && lap > KR.lastLap) { if (lap === KLAPS) { showToast('Letzte Runde', ''); SFX.unlock(); } else { showToast('Runde ' + lap, ''); SFX.level(); } }
       KR.lastLap = lap;
@@ -3709,6 +3791,12 @@
     $('kh-lap').textContent = 'Runde ' + lap + '/' + KLAPS;
     $('kh-time').textContent = fmtT(KR.time);
     $('kh-kmh').textContent = Math.round(Math.abs(me.sp) * 3.6) + ' km/h';
+    if (KR.coinShown !== me.coins) { KR.coinShown = me.coins; $('kh-coin').textContent = me.coins; }
+    /* Tempo-Linien */
+    var ro = me.boost > 0 ? 0.32 + me.boostLv * 0.06 : Math.max(0, Math.min(0.12, (me.sp - 32) / 40));
+    var rush = $('rush');
+    if (ro > 0.01) { rush.style.opacity = ro.toFixed(2); rush.style.transform = 'rotate(' + Math.floor(Math.random() * 360) + 'deg) scale(2.2)'; KR.rushOn = true; }
+    else if (KR.rushOn) { rush.style.opacity = '0'; KR.rushOn = false; }
     if (me.roll > 0) kShowItem(true); else kShowItem(false);
     $('k-skill').classList.toggle('live', !!me.item && me.roll <= 0);
     $('k-skill').classList.toggle('wait', !me.item);
@@ -3724,16 +3812,18 @@
     var hh = me.h + me.look * 0.5;
     if (KR.camX === null) { KR.camH = hh; }
     KR.camH = wrapA(KR.camH + wrapA(hh - KR.camH) * Math.min(1, dt * 5));
-    var fx = Math.cos(KR.camH), fz = Math.sin(KR.camH), back = 8.6 + (me.boost > 0 ? 1.2 : 0), up = 3.9;
+    if (KR.kick > 0) KR.kick = Math.max(0, KR.kick - dt * 2.2);
+    if (me.boost > 0 && KR.shake < 0.07) KR.shake = 0.07;
+    var fx = Math.cos(KR.camH), fz = Math.sin(KR.camH), back = 7.4 + (me.boost > 0 ? 1.8 : 0) + KR.kick * 1.2, up = 3.2;
     var tx = me.x - fx * back, tz = me.z - fz * back;
     if (KR.camX === null) { KR.camX = tx; KR.camZ = tz; }
     var a = Math.min(1, dt * 9);
     KR.camX += (tx - KR.camX) * a; KR.camZ += (tz - KR.camZ) * a;
     var sh = KR.shake > 0 ? KR.shake : 0; if (KR.shake > 0) KR.shake -= dt * 1.6;
     camera.position.set(KR.camX + (Math.random() - 0.5) * sh * 0.6, up + (Math.random() - 0.5) * sh * 0.5, KR.camZ + (Math.random() - 0.5) * sh * 0.6);
-    camera.lookAt(me.x + fx * 7, 1.1, me.z + fz * 7);
-    var fov = baseFov + 4 + (me.boost > 0 ? 9 : 0) + Math.max(0, me.sp - 20) * 0.25;
-    camera.fov += (fov - camera.fov) * Math.min(1, dt * 4); camera.updateProjectionMatrix();
+    camera.lookAt(me.x + fx * 8, 1.0, me.z + fz * 8);
+    var fov = baseFov + 6 + (me.boost > 0 ? 13 : 0) + Math.max(0, me.sp - 26) * 0.35 + KR.kick * 6;
+    camera.fov += (fov - camera.fov) * Math.min(1, dt * (fov > camera.fov ? 8 : 3)); camera.updateProjectionMatrix();
     if (KW.sun) { KW.sun.position.set(me.x + 40, 90, me.z + 25); KW.sun.target.position.set(me.x, 0, me.z); }
   }
   /* Mini-Karte */
@@ -4009,7 +4099,7 @@
     if (state !== 'kart') return;
     if (e.k === 'ban') spawnBanana(e);
     else if (e.k === 'rok') spawnRocket(e);
-    else if (e.k === 'gone') removeBanana(e.id);
+    else if (e.k === 'gone') { removeBanana(e.id); myHit(e.id); }
     else if (e.k === 'box') { var b = KW.boxes[e.i | 0]; if (b && b.on) { b.on = false; b.t = 3; b.m.visible = false; } }
   }
   function netEvent(e) {
